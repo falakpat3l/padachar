@@ -77,3 +77,20 @@ object DayClock {
         return java.time.Duration.between(now, next).toMillis()
     }
 }
+
+/**
+ * Splits [delta] steps taken between [lastMs] and [nowMs] across local midnight, in
+ * proportion to the time spent on each side. Gaps over 2 h (or no previous reading) put
+ * everything on the current day, because we cannot know when those steps happened.
+ * @return list of (epochDay, steps)
+ */
+fun splitAcrossMidnight(delta: Long, lastMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): List<Pair<Long, Long>> {
+    val today = DayClock.epochDay(nowMs, zone)
+    val gap = nowMs - lastMs
+    if (lastMs <= 0 || gap <= 0 || gap > 2 * 3_600_000L || DayClock.epochDay(lastMs, zone) != today - 1) {
+        return listOf(today to delta)
+    }
+    val midnight = LocalDate.ofEpochDay(today).atStartOfDay(zone).toInstant().toEpochMilli()
+    val before = delta * (midnight - lastMs) / gap
+    return listOf(today - 1 to before, today to delta - before).filter { it.second > 0 }
+}

@@ -26,11 +26,15 @@ data class UserProfile(
     /** Optional calibrated stride (walk 100 steps, measure distance). Null = height x 0.414. */
     val strideOverrideM: Double? = null,
     val isConfigured: Boolean = false,
+    /** Accent colour (ARGB) chosen in Data & settings. */
+    val accentArgb: Int = DEFAULT_ACCENT,
 ) {
     val strideM: Double get() = strideOverrideM ?: HealthMetrics.strideMeters(heightCm)
     val bmi: Double get() = HealthMetrics.bmi(weightKg, heightCm)
     val bmiCategory get() = HealthMetrics.bmiCategory(bmi)
     val bmr: Double get() = HealthMetrics.bmrMifflinStJeor(weightKg, heightCm, ageYears, sex)
+
+    companion object { const val DEFAULT_ACCENT = 0xFF00C2A8.toInt() }
 }
 
 val Context.userDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
@@ -46,6 +50,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
         val GOAL = intPreferencesKey("daily_goal")
         val STRIDE = doublePreferencesKey("stride_override_m")
         val CONFIGURED = booleanPreferencesKey("configured")
+        val ACCENT = intPreferencesKey("accent_argb")
     }
 
     val profile: Flow<UserProfile> = dataStore.data
@@ -60,6 +65,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
                 dailyGoal = p[Keys.GOAL] ?: d.dailyGoal,
                 strideOverrideM = p[Keys.STRIDE],
                 isConfigured = p[Keys.CONFIGURED] ?: false,
+                accentArgb = p[Keys.ACCENT] ?: UserProfile.DEFAULT_ACCENT,
             )
         }
 
@@ -73,5 +79,9 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             if (profile.strideOverrideM != null) p[Keys.STRIDE] = profile.strideOverrideM else p.remove(Keys.STRIDE)
             p[Keys.CONFIGURED] = true
         }
+    }
+
+    suspend fun saveAccent(argb: Int) {
+        dataStore.edit { it[Keys.ACCENT] = argb }
     }
 }

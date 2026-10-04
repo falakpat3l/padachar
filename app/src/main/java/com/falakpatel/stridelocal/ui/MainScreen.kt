@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.falakpatel.stridelocal.data.DailySteps
 import com.falakpatel.stridelocal.data.UserProfile
+import com.falakpatel.stridelocal.health.HealthMetrics
 import com.falakpatel.stridelocal.sensor.StepCounterService
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -59,12 +60,13 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
+fun MainScreen(state: MainUiState, onEditProfile: () -> Unit, onOpenData: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("StrideLocal") },
                 actions = {
+                    IconButton(onClick = onOpenData) { Icon(Icons.Filled.DateRange, contentDescription = "Data and settings") }
                     IconButton(onClick = onEditProfile) { Icon(Icons.Filled.Person, contentDescription = "Your metrics") }
                 },
             )
@@ -79,7 +81,7 @@ fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             PermissionGate()
-            TodayCard(state.today, state.profile.dailyGoal)
+            TodayCard(state.today, state.profile)
             WeekCard(state.week, state.profile.dailyGoal)
             BodyCard(state.profile)
             Text(
@@ -92,8 +94,8 @@ fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
 }
 
 /**
- * Asks for ACTIVITY_RECOGNITION (Android 10+) and POST_NOTIFICATIONS (Android 13+),
- * then starts the service. If the user says no, explains why and links to settings.
+ * Asks for ACTIVITY_RECOGNITION (Android 10+), then starts the background service.
+ * Notification permission is never requested, so nothing sits in the status bar. If the user says no, explains why and links to settings.
  */
 @Composable
 private fun PermissionGate() {
@@ -101,7 +103,6 @@ private fun PermissionGate() {
     val needed = remember {
         buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) add(Manifest.permission.ACTIVITY_RECOGNITION)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
         }.toTypedArray()
     }
     var activityGranted by remember { mutableStateOf(StepCounterService.hasActivityPermission(context)) }
@@ -131,30 +132,41 @@ private fun PermissionGate() {
     }
 }
 
+/**
+ * Google Fit style double ring: outer = steps vs goal (accent), inner = active kcal vs the
+ * kcal that the step goal would burn (companion colour).
+ */
 @Composable
-private fun TodayCard(today: DailySteps, goal: Int) {
-    val progress = if (goal > 0) (today.steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
-    val ringColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(200.dp)) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val stroke = Stroke(width = 18.dp.toPx(), cap = StrokeCap.Round)
-                    drawArc(trackColor, -90f, 360f, false, style = stroke)
-                    drawArc(ringColor, -90f, 360f * progress, false, style = stroke)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(String.format(Locale.getDefault(), "%,d", today.steps), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                    Text("of ${String.format(Locale.getDefault(), "%,d", goal)} steps", style = MaterialTheme.typography.bodyMedium)
-                }
+private fun TodayCard(today: DailySteps, profile: UserProfile) {
+    val goal = profile.dailyGoal
+    val stepP = if (goal > 0) (today.steps.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val kcalGoal = HealthMetrics.kcalForSteps(goal.toLong(), 100.0, profile.strideM, profile.weightKg)
+    val kcalP = if (kcalGoal > 0) (today.activeKcal / kcalGoal).toFloat().coerceIn(0f, 1f) else 0f
+    val outer = MaterialTheme.colorScheme.primary
+    val inner = MaterialTheme.colorScheme.secondary
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(230.dp)) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = 16.dp.toPx()
+                val stroke = Stroke(width = w, cap = StrokeCap.Round)
+                drawArc(track, -90f, 360f, false, style = stroke)
+                drawArc(outer, -90f, 360f * stepP, false, style = stroke)
+                val inset = w * 1.6f
+                val innerSize = Size(size.width - 2 * inset, size.height - 2 * inset)
+                drawArc(track, -90f, 360f, false, topLeft = Offset(inset, inset), size = innerSize, style = stroke)
+                drawArc(inner, -90f, 360f * kcalP, false, topLeft = Offset(inset, inset), size = innerSize, style = stroke)
             }
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Stat(String.format(Locale.getDefault(), "%.2f", today.distanceKm), "km")
-                Stat(String.format(Locale.getDefault(), "%.0f", today.activeKcal), "active kcal")
-                Stat("${(progress * 100).toInt()}%", "of goal")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(String.format(Locale.getDefault(), "%,d", today.steps), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = outer)
+                Text(String.format(Locale.getDefault(), "%.0f kcal", today.activeKcal), style = MaterialTheme.typography.titleMedium, color = inner)
             }
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Stat(String.format(Locale.getDefault(), "%.2f", today.distanceKm), "km")
+            Stat("${(stepP * 100).toInt()}%", "of ${String.format(Locale.getDefault(), "%,d", goal)}")
+            Stat(String.format(Locale.getDefault(), "%.0f", kcalGoal), "kcal goal")
         }
     }
 }

@@ -3,6 +3,7 @@ package com.falakpatel.stridelocal
 import com.falakpatel.stridelocal.sensor.CadenceEstimator
 import com.falakpatel.stridelocal.sensor.DayClock
 import com.falakpatel.stridelocal.sensor.StepDelta
+import com.falakpatel.stridelocal.sensor.splitAcrossMidnight
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.ZoneId
@@ -35,5 +36,15 @@ class StepDeltaTest {
         // 2026-10-03T18:31:00Z is 00:01 on 4 Oct in India
         val ms = java.time.Instant.parse("2026-10-03T18:31:00Z").toEpochMilli()
         assertEquals(java.time.LocalDate.of(2026, 10, 4).toEpochDay(), DayClock.epochDay(ms, zone))
+    }
+
+    @Test fun splitsStepsAcrossMidnight() {
+        val zone = ZoneId.of("Asia/Kolkata")
+        val last = java.time.Instant.parse("2026-10-04T18:20:00Z").toEpochMilli() // 23:50 IST
+        val now = java.time.Instant.parse("2026-10-04T18:40:00Z").toEpochMilli()  // 00:10 IST
+        val d = java.time.LocalDate.of(2026, 10, 5).toEpochDay()
+        assertEquals(listOf(d - 1 to 300L, d to 300L), splitAcrossMidnight(600, last, now, zone))
+        // gap over 2 hours: all on today
+        assertEquals(listOf(d to 600L), splitAcrossMidnight(600, last - 3 * 3_600_000L, now, zone))
     }
 }

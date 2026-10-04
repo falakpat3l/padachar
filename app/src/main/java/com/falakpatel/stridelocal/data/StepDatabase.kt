@@ -1,6 +1,7 @@
 package com.falakpatel.stridelocal.data
 
 import android.content.Context
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -10,6 +11,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 /** One row per local calendar day (LocalDate.toEpochDay()). */
@@ -28,6 +31,8 @@ data class TrackerState(
     @PrimaryKey val id: Int = 0,
     val lastCounter: Long = -1,
     val bootCount: Int = -1,
+    /** Wall time of the last saved reading, used for pace and midnight splitting. */
+    @ColumnInfo(defaultValue = "0") val lastSyncMs: Long = 0,
 )
 
 @Dao
@@ -40,6 +45,19 @@ abstract class StepDao {
 
     @Query("SELECT * FROM daily_steps WHERE epochDay >= :fromDay ORDER BY epochDay")
     abstract fun observeFrom(fromDay: Long): Flow<List<DailySteps>>
+
+    @Query("SELECT * FROM daily_steps ORDER BY epochDay DESC")
+    abstract fun observeAll(): Flow<List<DailySteps>>
+
+    @Query("DELETE FROM daily_steps WHERE epochDay = :day")
+    abstract suspend fun deleteDay(day: Long)
+
+    /** Deletes the [n] oldest stored days. */
+    @Query("DELETE FROM daily_steps WHERE epochDay IN (SELECT epochDay FROM daily_steps ORDER BY epochDay ASC LIMIT :n)")
+    abstract suspend fun deleteOldest(n: Int)
+
+    @Upsert
+    abstract suspend fun upsertDays(days: List<DailySteps>)
 
     @Query("SELECT * FROM tracker_state WHERE id = 0")
     abstract suspend fun getState(): TrackerState?
@@ -61,12 +79,20 @@ abstract class StepDao {
     }
 }
 
-@Database(entities = [DailySteps::class, TrackerState::class], version = 1, exportSchema = false)
+@Database(entities = [DailySteps::class, TrackerState::class], version = 2, exportSchema = false)
 abstract class StepDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
 
     companion object {
         fun build(context: Context): StepDatabase =
-            Room.databaseBuilder(context, StepDatabase::class.java, "steps.db").build()
+            Room.databaseBuilder(context, StepDatabase::class.java, "steps.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tracker_state ADD COLUMN lastSyncMs INTEGER NOT NULL DEFAULT 0")
+            }
+        }
     }
 }

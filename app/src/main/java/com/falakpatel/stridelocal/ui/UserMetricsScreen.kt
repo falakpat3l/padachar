@@ -10,7 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,8 +60,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 title = { Text("Your metrics") },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) {
-                        @Suppress("DEPRECATION")
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -106,7 +105,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 enabled = valid,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    onSave(UserProfile(w!!, h!!, a!!, sex, g!!, s, isConfigured = true))
+                    onSave(initial.copy(weightKg = w!!, heightCm = h!!, ageYears = a!!, sex = sex, dailyGoal = g!!, strideOverrideM = s, isConfigured = true))
                 },
             ) { Text("Save") }
         }

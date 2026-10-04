@@ -15,18 +15,30 @@ android {
         applicationId = "com.falakpatel.stridelocal"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-alpha"
+        versionCode = 2
+        versionName = "0.2.0-alpha"
+        resourceConfigurations += "en" // drop unused library translations (smaller APK)
     }
 
+    // Fixed release key (from GitHub secrets) so updates install over the old version
+    // and your local data is kept. Falls back to the debug key when the secret is absent.
+    val keystorePath: String? = System.getenv("STRIDE_KEYSTORE")
+    signingConfigs {
+        create("release") {
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("STRIDE_KEYSTORE_PASSWORD")
+                keyAlias = "stridelocal"
+                keyPassword = System.getenv("STRIDE_KEYSTORE_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Pre-release builds are signed with the debug key so the APK installs directly.
-            // Replace with your own keystore before any store release.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystorePath != null) "release" else "debug")
         }
     }
     compileOptions {
@@ -35,6 +47,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    lint { checkReleaseBuilds = false }
+    packaging {
+        resources.excludes += listOf("/META-INF/*.version", "/META-INF/*.kotlin_module", "DebugProbesKt.bin", "kotlin-tooling-metadata.json")
+    }
 }
 
 dependencies {
@@ -56,6 +72,9 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+
+    // Optional one-time import from Health Connect (on-device store used by Google Fit / Health)
+    implementation("androidx.health.connect:connect-client:1.1.0")
 
     // Home screen widget
     implementation("androidx.glance:glance-appwidget:1.1.1")

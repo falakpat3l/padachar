@@ -1,47 +1,25 @@
 package com.falakpatel.stridelocal.data
 
 import com.falakpatel.stridelocal.sensor.DayClock
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
-/** A consistent point-in-time copy of tracker state plus the day rows it affects. */
-data class Snapshot(val state: TrackerState, val days: List<DailySteps>, val refreshWidget: Boolean)
-
-class StepRepository(
-    private val dao: StepDao,
-    appScope: CoroutineScope,
-    private val afterSave: suspend (Snapshot) -> Unit,
-) {
-    /**
-     * All writes go through one queue with one consumer, so snapshots land in the exact
-     * order the service produced them (an older baseline can never overwrite a newer one).
-     */
-    private val writes = Channel<Snapshot>(Channel.UNLIMITED)
-
-    init {
-        appScope.launch {
-            for (snap in writes) {
-                runCatching { dao.saveSnapshot(snap.state, snap.days) }
-                runCatching { afterSave(snap) }
-            }
-        }
-    }
-
-    fun enqueue(snapshot: Snapshot) {
-        writes.trySend(snapshot)
-    }
+/** Local-only storage. Rows are kept forever until the user deletes them. */
+class StepRepository(private val dao: StepDao) {
 
     suspend fun loadState(): TrackerState = dao.getState() ?: TrackerState()
     suspend fun getDay(day: Long): DailySteps? = dao.getDay(day)
     suspend fun today(): DailySteps = DayClock.today().let { dao.getDay(it) ?: DailySteps(it) }
+    suspend fun save(state: TrackerState, days: List<DailySteps>) = dao.saveSnapshot(state, days)
+    suspend fun upsertDays(days: List<DailySteps>) = dao.upsertDays(days)
+    suspend fun deleteDay(day: Long) = dao.deleteDay(day)
+    suspend fun deleteOldest(n: Int) = dao.deleteOldest(n)
+    fun observeAll(): Flow<List<DailySteps>> = dao.observeAll()
 
     /** Emits today's epoch day now and again right after each local midnight. */
     private fun todayTicker(): Flow<Long> = flow {

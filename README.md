@@ -12,6 +12,9 @@ A 100% offline, privacy-first step tracker for Android. No internet permission, 
 - Active calories from MET values (Compendium of Physical Activities) using your pace and weight.
 - Home screen widget (Jetpack Glance): steps, goal bar, km, refresh button, tap to open.
 - Local storage only: DataStore for your profile, Room for daily history. Cloud backup is disabled.
+- Unlimited history, kept until you delete it (one day, or the oldest days in 1 or 5 day steps).
+- Pitch black theme with your own accent colour.
+- One-time import of old steps from Google Fit / Google Health via Health Connect (on-device, no internet).
 - The build fails if any library adds a network permission (`verifyDebugNoNetwork` task).
 
 ## Labs (code ready, screens coming next)
@@ -26,9 +29,9 @@ In `app/src/main/java/.../labs/`. Experiments, not medical devices.
 ## Install the pre-release APK
 
 1. On your phone, open the Releases page of this repo.
-2. Download `StrideLocal-v0.1.0-alpha.apk`.
+2. Download the newest `StrideLocal-v...apk`.
 3. Open it and allow "Install unknown apps" when asked.
-4. Open StrideLocal, enter your metrics, allow Physical activity and Notifications.
+4. Open StrideLocal, enter your metrics, allow Physical activity.
 5. Long-press the home screen, Widgets, StrideLocal, drag "Steps today" to the screen.
 
 Tip: some phones (Xiaomi, Oppo, Vivo, Samsung) stop background apps. Set StrideLocal battery usage to "Unrestricted" in app settings.
