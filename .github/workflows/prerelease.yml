@@ -1,0 +1,61 @@
+name: Build pre-release APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests and signed release APK
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.STRIDE_KEYSTORE_B64 }}
+          STRIDE_KEYSTORE_PASSWORD: ${{ secrets.STRIDE_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export STRIDE_KEYSTORE="$RUNNER_TEMP/release.jks"
+          fi
+          # Tag comes from versionName, so new versions need no edits here
+          echo "TAG=v$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Show compile errors as annotations
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "^e: |error:|FAILED|What went wrong" -A2 build.log | head -40 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
+      - name: Publish pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="StrideLocal-${TAG}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          ls -l "$APK"
+          NOTES="Pre-release for testing. Offline only: no internet permission. See CHANGELOG.md."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" --prerelease --title "StrideLocal ${TAG}" --notes "$NOTES" --target "$GITHUB_SHA"
+          fi
