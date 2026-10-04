@@ -2,11 +2,6 @@ name: Build pre-release APK
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag"
-        required: true
-        default: "v0.1.0-alpha"
   push:
     tags: ["v*"]
 
@@ -16,8 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,11 +21,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests and debug APK
+      - name: Unit tests and signed release APK
         shell: bash
+        env:
+          KS_B64: ${{ secrets.STRIDE_KEYSTORE_B64 }}
+          STRIDE_KEYSTORE_PASSWORD: ${{ secrets.STRIDE_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon testDebugUnitTest assembleDebug 2>&1 | tee build.log
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export STRIDE_KEYSTORE="$RUNNER_TEMP/release.jks"
+          fi
+          # Tag comes from versionName, so new versions need no edits here
+          echo "TAG=v$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease 2>&1 | tee build.log
           exit ${PIPESTATUS[0]}
 
       - name: Show compile errors as annotations
@@ -49,8 +51,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK="StrideLocal-${TAG}.apk"
-          cp app/build/outputs/apk/debug/app-debug.apk "$APK"
-          NOTES="Pre-release build for testing. Offline only: no internet permission. Signed with a debug key, so uninstall the old version before installing a new one."
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          ls -l "$APK"
+          NOTES="Pre-release for testing. Offline only: no internet permission. See CHANGELOG.md."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
