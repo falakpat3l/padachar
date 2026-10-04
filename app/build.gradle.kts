@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.falakpatel.stridelocal"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.falakpatel.stridelocal"
@@ -74,7 +74,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     // Optional one-time import from Health Connect (on-device store used by Google Fit / Health)
-    implementation("androidx.health.connect:connect-client:1.1.0-rc01") // 1.1.0 final needs compileSdk 36
+    implementation("androidx.health.connect:connect-client:1.1.0")
 
     // Home screen widget
     implementation("androidx.glance:glance-appwidget:1.1.1")
