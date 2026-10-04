@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.StrideLocal" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+    <color name="launcher_bg">#0F5132</color>
+</resources>

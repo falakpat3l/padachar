@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">StrideLocal</string>
+    <string name="widget_name">Steps today</string>
+    <string name="widget_description">Live steps, goal progress and distance. Fully offline.</string>
+    <string name="channel_name">Step tracking</string>
+</resources>

@@ -1,0 +1,102 @@
+import com.android.build.api.artifact.SingleArtifact
+
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
+}
+
+android {
+    namespace = "com.falakpatel.stridelocal"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.falakpatel.stridelocal"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "0.1.0-alpha"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Pre-release builds are signed with the debug key so the APK installs directly.
+            // Replace with your own keystore before any store release.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
+}
+
+dependencies {
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
+    // Local storage only
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    // Home screen widget
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
+    testImplementation("junit:junit:4.13.2")
+}
+
+/**
+ * Privacy guard: fails the build if any library sneaks a network permission
+ * into the merged manifest. Runs before every assemble task.
+ */
+abstract class VerifyNoNetworkPermission : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val manifest: RegularFileProperty
+
+    @get:OutputFile
+    abstract val report: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        val text = manifest.get().asFile.readText()
+        val banned = listOf(
+            "android.permission.INTERNET",
+            "android.permission.ACCESS_NETWORK_STATE",
+            "android.permission.ACCESS_WIFI_STATE",
+        )
+        val found = banned.filter { text.contains("\"$it\"") }
+        if (found.isNotEmpty()) throw GradleException("Network permission found in merged manifest: $found")
+        report.get().asFile.writeText("OK: no network permissions")
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val cap = variant.name.replaceFirstChar { it.uppercase() }
+        val variantName = variant.name
+        val verify = tasks.register<VerifyNoNetworkPermission>("verify${cap}NoNetwork") {
+            manifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
+            report.set(layout.buildDirectory.file("reports/no-network-$variantName.txt"))
+        }
+        tasks.matching { it.name == "assemble$cap" }.configureEach { dependsOn(verify) }
+    }
+}

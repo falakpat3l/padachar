@@ -1,0 +1,77 @@
+package com.falakpatel.stridelocal.data
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.falakpatel.stridelocal.health.HealthMetrics
+import com.falakpatel.stridelocal.health.Sex
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
+
+data class UserProfile(
+    val weightKg: Double = 70.0,
+    val heightCm: Double = 170.0,
+    val ageYears: Int = 25,
+    val sex: Sex = Sex.MALE,
+    val dailyGoal: Int = 8_000,
+    /** Optional calibrated stride (walk 100 steps, measure distance). Null = height x 0.414. */
+    val strideOverrideM: Double? = null,
+    val isConfigured: Boolean = false,
+) {
+    val strideM: Double get() = strideOverrideM ?: HealthMetrics.strideMeters(heightCm)
+    val bmi: Double get() = HealthMetrics.bmi(weightKg, heightCm)
+    val bmiCategory get() = HealthMetrics.bmiCategory(bmi)
+    val bmr: Double get() = HealthMetrics.bmrMifflinStJeor(weightKg, heightCm, ageYears, sex)
+}
+
+val Context.userDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
+
+/** Weight, height, goal etc. in Jetpack DataStore (Preferences). File stays in app-private storage. */
+class UserPreferences(private val dataStore: DataStore<Preferences>) {
+
+    private object Keys {
+        val WEIGHT = doublePreferencesKey("weight_kg")
+        val HEIGHT = doublePreferencesKey("height_cm")
+        val AGE = intPreferencesKey("age_years")
+        val SEX = stringPreferencesKey("sex")
+        val GOAL = intPreferencesKey("daily_goal")
+        val STRIDE = doublePreferencesKey("stride_override_m")
+        val CONFIGURED = booleanPreferencesKey("configured")
+    }
+
+    val profile: Flow<UserProfile> = dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+        .map { p ->
+            val d = UserProfile()
+            UserProfile(
+                weightKg = p[Keys.WEIGHT] ?: d.weightKg,
+                heightCm = p[Keys.HEIGHT] ?: d.heightCm,
+                ageYears = p[Keys.AGE] ?: d.ageYears,
+                sex = p[Keys.SEX]?.let { runCatching { Sex.valueOf(it) }.getOrNull() } ?: d.sex,
+                dailyGoal = p[Keys.GOAL] ?: d.dailyGoal,
+                strideOverrideM = p[Keys.STRIDE],
+                isConfigured = p[Keys.CONFIGURED] ?: false,
+            )
+        }
+
+    suspend fun save(profile: UserProfile) {
+        dataStore.edit { p ->
+            p[Keys.WEIGHT] = profile.weightKg
+            p[Keys.HEIGHT] = profile.heightCm
+            p[Keys.AGE] = profile.ageYears
+            p[Keys.SEX] = profile.sex.name
+            p[Keys.GOAL] = profile.dailyGoal
+            if (profile.strideOverrideM != null) p[Keys.STRIDE] = profile.strideOverrideM else p.remove(Keys.STRIDE)
+            p[Keys.CONFIGURED] = true
+        }
+    }
+}
