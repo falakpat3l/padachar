@@ -84,6 +84,7 @@ class StepCounterService : Service(), SensorEventListener {
     private var pendingWallMs = 0L
     private var flushedCounter = -1L
     private val accelSteps = AtomicLong(0)
+    private val pace = PaceTracker() // main thread only
     @Volatile private var lastWidgetMs = 0L
     private var lastWidgetDay = -1L
 
@@ -131,6 +132,11 @@ class StepCounterService : Service(), SensorEventListener {
             // Events that pile up while the phone sleeps may be dropped. Harmless: the value is
             // cumulative, so the next event still contains every step.
             sensorManager.registerListener(this, counter, SensorManager.SENSOR_DELAY_NORMAL)
+            // Step detector: one event per step with its own timestamp, batched by the chip
+            // (up to 30 s) so the CPU can sleep. Used only to time steps for walk vs run.
+            sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)?.let {
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL, 30_000_000)
+            }
             return
         }
         // Fallback for phones without a step chip: our own detector on the accelerometer.
@@ -157,6 +163,7 @@ class StepCounterService : Service(), SensorEventListener {
                 pendingCounter = event.values[0].toLong()
                 pendingWallMs = eventWallTime(event)
             }
+            Sensor.TYPE_STEP_DETECTOR -> pace.onStep(eventWallTime(event)) // main thread
             Sensor.TYPE_ACCELEROMETER -> { // accel thread
                 val n = accelDetector?.onSample(eventWallTime(event), event.values[0], event.values[1], event.values[2]) ?: 0
                 if (n > 0) accelSteps.addAndGet(n.toLong())
@@ -178,15 +185,17 @@ class StepCounterService : Service(), SensorEventListener {
         val counter = pendingCounter
         val wall = pendingWallMs
         val accel = accelSteps.getAndSet(0)
+        val minutes = pace.drain(System.currentTimeMillis(), all = final)
         val today = DayClock.today()
         val hasCounter = counter >= 0 && counter != flushedCounter
         val newDay = today != lastWidgetDay
-        if (!hasCounter && accel == 0L && !newDay && !final) return
+        if (!hasCounter && accel == 0L && minutes.isEmpty() && !newDay && !final) return
         if (hasCounter) flushedCounter = counter
         lastWidgetDay = today
         app.appScope.launch {
             if (hasCounter) StepEngine.onCounter(app, counter, wall)
             if (accel > 0) StepEngine.addSteps(app, accel, System.currentTimeMillis())
+            StepEngine.addPaceMinutes(app, minutes)
             val now = SystemClock.elapsedRealtime()
             if (final || newDay || now - lastWidgetMs >= WIDGET_MS) {
                 lastWidgetMs = now

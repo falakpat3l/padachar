@@ -10,17 +10,17 @@ A 100% offline, privacy-first step tracker for Android. No internet permission, 
 - Correct daily totals across reboots and midnight (see `StepDelta` in `sensor/StepMath.kt`).
 - Profile in kg and cm: BMI and category, Mifflin-St Jeor BMR, stride (height x 0.414, or your calibrated value).
 - Active calories from MET values (Compendium of Physical Activities) using your pace and weight.
-- Home screen widget (Jetpack Glance): steps, goal bar, km, refresh button, tap to open.
+- Home screen widget (Jetpack Glance): resizes 1x1, 2x1, 1x2 and 2x2; steps, goal bar, km, tap to open.
 - Local storage only: DataStore for your profile, Room for daily history. Cloud backup is disabled.
 - Unlimited history, kept until you delete it (one day, or the oldest days in 1 or 5 day steps), plus backup and restore to a file.
 - Pitch black theme with your own accent colour.
 - One-time import of old steps from Google Fit / Google Health via Health Connect (on-device, no internet).
 - The build fails if any library adds a network permission (`verifyDebugNoNetwork` task).
 
-## Food and Measure
+## Food and Activity
 
 - Food tab: log meals from a built-in list of common Indian dishes or your own entries, and see eaten vs burned for the day.
-- Measure tab: heart rate (fingertip on camera and flash), breathing rate (phone on chest) and posture alerts. Wellness estimates, not a medical device.
+- Activity tab: walking vs running minutes, from step speed (145+ steps per minute is running).
 - Backup: save everything to a CSV file and restore it on any phone.
 - Coming next: on-device photo recognition of Indian food.
 

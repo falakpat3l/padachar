@@ -28,7 +28,7 @@ object Backup {
         out.bufferedWriter().use { w ->
             w.write(HEADER + "\n")
             w.write("P,${p.weightKg},${p.heightCm},${p.ageYears},${p.sex.name},${p.dailyGoal},${p.strideOverrideM ?: ""},${p.accentArgb}\n")
-            days.forEach { w.write("D,${it.epochDay},${it.steps},${it.distanceKm},${it.activeKcal},${it.goal}\n") }
+            days.forEach { w.write("D,${it.epochDay},${it.steps},${it.distanceKm},${it.activeKcal},${it.goal},${it.walkMin},${it.runMin},${it.runSteps}\n") }
             food.forEach {
                 w.write("F,${it.epochDay},${it.timeMs},${Csv.field(it.name)},${it.servings},${it.kcal},${it.proteinG},${it.carbsG},${it.fatG}\n")
             }
@@ -55,7 +55,12 @@ object Backup {
                         app.userPreferences.saveAccent(f[7].toInt())
                     }
                     "D" -> {
-                        val row = DailySteps(f[1].toLong(), f[2].toLong(), f[3].toDouble(), f[4].toDouble(), f[5].toInt())
+                        val row = DailySteps(
+                            f[1].toLong(), f[2].toLong(), f[3].toDouble(), f[4].toDouble(), f[5].toInt(),
+                            walkMin = f.getOrNull(6)?.toIntOrNull() ?: 0, // older backups have no walk/run columns
+                            runMin = f.getOrNull(7)?.toIntOrNull() ?: 0,
+                            runSteps = f.getOrNull(8)?.toLongOrNull() ?: 0,
+                        )
                         val old = repo.getDay(row.epochDay)
                         if (old == null || row.steps > old.steps) {
                             repo.upsertDays(listOf(row))

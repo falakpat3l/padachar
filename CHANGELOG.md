@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0-alpha (2026-10-05)
+
+- New Activity tab: walking vs running minutes and steps, told apart by step speed (145+ steps per minute is running).
+- Running minutes use a longer stride and a higher calorie rate, so distance and kcal are closer to reality.
+- Removed the Measure tab (heart rate, breathing, posture): phone sensors were not reliable enough. Camera permission removed too.
+- Widget now resizes: 1x1, 2x1 (default), 1x2 and 2x2.
+- Backups now include walk and run minutes (older backup files still restore).
+
 ## v0.3.0-alpha (2026-10-05)
 
 - Bottom tabs like Google Fit: Home, Food, Measure, Settings.

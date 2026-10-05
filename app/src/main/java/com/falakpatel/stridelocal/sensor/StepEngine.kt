@@ -49,6 +49,32 @@ object StepEngine {
         repo.save(s.copy(lastSyncMs = wallMs), addToDays(ctx, steps, s.lastSyncMs, wallMs))
     }
 
+    /**
+     * Adds finished minutes from the step detector: each becomes a walk or run minute.
+     * Run minutes also get the running stride and calorie correction.
+     */
+    suspend fun addPaceMinutes(ctx: Context, minutes: List<Pair<Long, Int>>) = mutex.withLock {
+        if (minutes.isEmpty()) return@withLock
+        val app = ctx.strideApp
+        val p = app.userPreferences.profile.first()
+        val rows = minutes.groupBy { DayClock.epochDay(it.first) }.map { (day, list) ->
+            var row = app.stepRepository.getDay(day) ?: DailySteps(day, goal = p.dailyGoal)
+            for ((_, n) in list) {
+                when (paceFor(n)) {
+                    Pace.RUN -> {
+                        val (km, kcal) = HealthMetrics.runningExtra(n, p.strideM, p.weightKg)
+                        row = row.copy(runMin = row.runMin + 1, runSteps = row.runSteps + n,
+                            distanceKm = row.distanceKm + km, activeKcal = row.activeKcal + kcal)
+                    }
+                    Pace.WALK -> row = row.copy(walkMin = row.walkMin + 1)
+                    Pace.IDLE -> Unit
+                }
+            }
+            row
+        }
+        app.stepRepository.upsertDays(rows)
+    }
+
     private suspend fun addToDays(ctx: Context, delta: Long, lastMs: Long, nowMs: Long): List<DailySteps> {
         val app = ctx.strideApp
         val p = app.userPreferences.profile.first()

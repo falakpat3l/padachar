@@ -24,7 +24,12 @@ data class DailySteps(
     val distanceKm: Double = 0.0,
     val activeKcal: Double = 0.0,
     val goal: Int = 8_000,
-)
+    @ColumnInfo(defaultValue = "0") val walkMin: Int = 0,
+    @ColumnInfo(defaultValue = "0") val runMin: Int = 0,
+    @ColumnInfo(defaultValue = "0") val runSteps: Long = 0,
+) {
+    val walkSteps: Long get() = (steps - runSteps).coerceAtLeast(0)
+}
 
 /** One food item eaten. kcal and macros are totals (already multiplied by servings). */
 @Entity(tableName = "food_entries")
@@ -135,14 +140,14 @@ abstract class StepDao {
     }
 }
 
-@Database(entities = [DailySteps::class, TrackerState::class, FoodEntry::class], version = 3, exportSchema = false)
+@Database(entities = [DailySteps::class, TrackerState::class, FoodEntry::class], version = 4, exportSchema = false)
 abstract class StepDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
 
     companion object {
         fun build(context: Context): StepDatabase =
             Room.databaseBuilder(context, StepDatabase::class.java, "steps.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -159,6 +164,14 @@ abstract class StepDatabase : RoomDatabase() {
                         "`servings` REAL NOT NULL, `kcal` REAL NOT NULL, `proteinG` REAL NOT NULL, " +
                         "`carbsG` REAL NOT NULL, `fatG` REAL NOT NULL)",
                 )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE daily_steps ADD COLUMN walkMin INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE daily_steps ADD COLUMN runMin INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE daily_steps ADD COLUMN runSteps INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

@@ -94,3 +94,36 @@ fun splitAcrossMidnight(delta: Long, lastMs: Long, nowMs: Long, zone: ZoneId = Z
     val before = delta * (midnight - lastMs) / gap
     return listOf(today - 1 to before, today to delta - before).filter { it.second > 0 }
 }
+
+enum class Pace { IDLE, WALK, RUN }
+
+/** Steps per minute at or above this count as running (brisk walking tops out around 130 to 140). */
+const val RUN_STEPS_PER_MIN = 145
+
+fun paceFor(stepsInMinute: Int): Pace = when {
+    stepsInMinute >= RUN_STEPS_PER_MIN -> Pace.RUN
+    stepsInMinute >= 40 -> Pace.WALK
+    else -> Pace.IDLE // a few steps around the house is not an active minute
+}
+
+/**
+ * Groups single-step timestamps (from TYPE_STEP_DETECTOR) into whole clock minutes.
+ * The sensor delivers steps in batches, sometimes late, so a minute is only handed out once
+ * it is [slackMinutes] old. That way a batch arriving a bit late still lands in its own minute.
+ */
+class PaceTracker(private val slackMinutes: Long = 2) {
+    private val counts = java.util.TreeMap<Long, Int>()
+
+    fun onStep(wallMs: Long) {
+        val k = wallMs / 60_000
+        counts[k] = (counts[k] ?: 0) + 1
+    }
+
+    /** @return finished minutes as (minute start in ms, steps in that minute). */
+    fun drain(nowMs: Long, all: Boolean = false): List<Pair<Long, Int>> {
+        val limit = nowMs / 60_000 - slackMinutes
+        val ready = counts.headMap(if (all) Long.MAX_VALUE else limit).entries.map { it.key * 60_000 to it.value }
+        ready.forEach { counts.remove(it.first / 60_000) }
+        return ready
+    }
+}

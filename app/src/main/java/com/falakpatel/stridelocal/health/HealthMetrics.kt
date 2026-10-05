@@ -28,6 +28,24 @@ object HealthMetrics {
 
     fun strideMeters(heightCm: Double): Double = heightCm / 100.0 * STRIDE_FACTOR
 
+    /** Running steps are longer than walking steps: about height x 0.60 instead of x 0.414. */
+    const val RUN_STRIDE_FACTOR = 0.60
+
+    fun runStride(walkStrideM: Double): Double = walkStrideM * RUN_STRIDE_FACTOR / STRIDE_FACTOR
+
+    /**
+     * Every step is first counted at walking stride and walking pace (the step chip cannot tell).
+     * When a minute turns out to be running, this returns the extra (km, kcal) to add on top,
+     * so running gets its longer stride and higher MET.
+     */
+    fun runningExtra(stepsInMinute: Int, walkStrideM: Double, weightKg: Double): Pair<Double, Double> {
+        val run = runStride(walkStrideM)
+        val extraKm = stepsInMinute * (run - walkStrideM) / 1000.0
+        val runKcal = activeKcal(metForSpeed(stepsInMinute * run * 60.0 / 1000.0), weightKg, 1.0)
+        val walkKcal = kcalForSteps(stepsInMinute.toLong(), stepsInMinute.toDouble(), walkStrideM, weightKg)
+        return extraKm to max(0.0, runKcal - walkKcal)
+    }
+
     /** Mifflin-St Jeor BMR in kcal/day: 10W + 6.25H - 5A + 5 (male) or - 161 (female). */
     fun bmrMifflinStJeor(weightKg: Double, heightCm: Double, ageYears: Int, sex: Sex): Double =
         10.0 * weightKg + 6.25 * heightCm - 5.0 * ageYears + if (sex == Sex.MALE) 5.0 else -161.0

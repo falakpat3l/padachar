@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -32,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.falakpatel.stridelocal.data.UserProfile
@@ -40,16 +40,16 @@ import com.falakpatel.stridelocal.ui.DataScreen
 import com.falakpatel.stridelocal.ui.FoodScreen
 import com.falakpatel.stridelocal.ui.MainScreen
 import com.falakpatel.stridelocal.ui.MainViewModel
-import com.falakpatel.stridelocal.ui.MeasureScreen
+import com.falakpatel.stridelocal.ui.ActivityScreen
 import com.falakpatel.stridelocal.ui.StrideTheme
 import com.falakpatel.stridelocal.ui.UserMetricsScreen
 import kotlinx.coroutines.launch
 
-/** Bottom tabs, Google Fit style. */
-private enum class Tab(val label: String, val icon: ImageVector) {
+/** Bottom tabs, Google Fit style. A null icon means the app's own walking figure. */
+private enum class Tab(val label: String, val icon: ImageVector?) {
     HOME("Home", Icons.Filled.Home),
+    ACTIVITY("Activity", null),
     FOOD("Food", Icons.AutoMirrored.Filled.List),
-    MEASURE("Measure", Icons.Filled.Favorite),
     SETTINGS("Settings", Icons.Filled.Settings),
 }
 
@@ -87,7 +87,10 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = tab == t,
                                     onClick = { tab = t },
-                                    icon = { Icon(t.icon, contentDescription = t.label) },
+                                    icon = {
+                                        if (t.icon != null) Icon(t.icon, contentDescription = t.label)
+                                        else Icon(painterResource(R.drawable.ic_stat_steps), contentDescription = t.label)
+                                    },
                                     label = { Text(t.label) },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -103,7 +106,7 @@ class MainActivity : ComponentActivity() {
                         when (tab) {
                             Tab.HOME -> MainScreen(state, onEditProfile = { editing = true })
                             Tab.FOOD -> FoodScreen(state)
-                            Tab.MEASURE -> MeasureScreen()
+                            Tab.ACTIVITY -> ActivityScreen(state)
                             Tab.SETTINGS -> DataScreen(accent)
                         }
                     }

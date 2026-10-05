@@ -1,15 +1,14 @@
 package com.falakpatel.stridelocal
 
-import com.falakpatel.stridelocal.labs.PostureRules
-import com.falakpatel.stridelocal.labs.PpgEstimator
-import com.falakpatel.stridelocal.labs.RespirationEstimator
+import com.falakpatel.stridelocal.health.HealthMetrics
 import com.falakpatel.stridelocal.sensor.AccelStepDetector
+import com.falakpatel.stridelocal.sensor.Pace
+import com.falakpatel.stridelocal.sensor.PaceTracker
+import com.falakpatel.stridelocal.sensor.paceFor
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -34,37 +33,24 @@ class SignalTest {
 
     @Test fun ignoresSensorNoise() = assertEquals(0, walk(2.0, 30, amp = 0.0, noise = 0.3))
 
-    @Test fun ppgFinds72Bpm() {
-        val e = PpgEstimator()
-        val rnd = Random(3)
-        for (i in 0 until 30 * 15) {
-            val t = i / 30.0
-            e.add(t, 120 + 2 * sin(2 * PI * 1.2 * t) + 0.3 * t + rnd.nextDouble() * 0.5)
-        }
-        val bpm = e.bpm()
-        assertTrue("got $bpm", bpm != null && bpm in 68..76)
+    @Test fun paceThresholds() {
+        assertEquals(Pace.IDLE, paceFor(10))
+        assertEquals(Pace.WALK, paceFor(110))
+        assertEquals(Pace.WALK, paceFor(140))
+        assertEquals(Pace.RUN, paceFor(160))
     }
 
-    @Test fun ppgRejectsNoise() {
-        val e = PpgEstimator()
-        val rnd = Random(4)
-        for (i in 0 until 30 * 15) e.add(i / 30.0, 120 + rnd.nextDouble() * 4)
-        assertNull(e.bpm())
+    @Test fun paceTrackerWaitsForLateSteps() {
+        val t = PaceTracker(slackMinutes = 2)
+        repeat(160) { t.onStep(60_000L + it * 375L) } // 160 steps inside minute 1
+        assertTrue(t.drain(4 * 60_000L - 1).isEmpty()) // minute ended at 2:00, wait 2 more minutes
+        assertEquals(listOf(60_000L to 160), t.drain(4 * 60_000L + 1))
+        assertTrue(t.drain(10 * 60_000L).isEmpty())
     }
 
-    @Test fun respirationFinds15PerMinute() {
-        val r = RespirationEstimator()
-        for (i in 0 until 10 * 40) {
-            val t = i / 10.0
-            val tilt = 0.02 * sin(2 * PI * 0.25 * t)
-            r.add(0.0, 9.81 * sin(tilt), 9.81 * cos(tilt))
-        }
-        val bpm = r.breathsPerMinute()
-        assertTrue("got $bpm", bpm != null && bpm in 14..16)
-    }
-
-    @Test fun pitch() {
-        assertEquals(90f, PostureRules.pitchDegrees(9.81f, 0f), 0.5f)
-        assertEquals(0f, PostureRules.pitchDegrees(0f, 9.81f), 0.5f)
+    @Test fun runningAddsDistanceAndKcal() {
+        val (km, kcal) = HealthMetrics.runningExtra(160, 0.72, 70.0)
+        assertTrue("km $km", km in 0.04..0.07)     // longer stride over 160 steps
+        assertTrue("kcal $kcal", kcal in 2.0..6.0) // running burns about 10 kcal/min at 70 kg
     }
 }
