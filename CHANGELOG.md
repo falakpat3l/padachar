@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0-alpha (2026-10-05)
+
+- Bottom tabs like Google Fit: Home, Food, Measure, Settings.
+- Food log: search 50 common Indian dishes (or add your own), servings in half steps, protein, carbs and fat.
+- Daily balance on the Food tab: eaten vs burned (BMR + active kcal), shown as deficit or surplus.
+- Measure tab: heart rate with the camera and flash, breathing rate with the phone on your chest, posture alerts.
+- Backup and restore to a CSV file you choose (steps, food and profile). Restore never deletes anything.
+- Deleting a day now removes that day's food too.
+
 ## v0.2.0-alpha (2026-10-04)
 
 - No notification in the status bar: the app no longer asks for notification permission (Android 13+).

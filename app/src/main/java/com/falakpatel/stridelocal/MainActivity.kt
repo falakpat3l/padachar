@@ -8,9 +8,21 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -19,18 +31,27 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.falakpatel.stridelocal.data.UserProfile
 import com.falakpatel.stridelocal.sensor.StepSync
 import com.falakpatel.stridelocal.ui.DataScreen
+import com.falakpatel.stridelocal.ui.FoodScreen
 import com.falakpatel.stridelocal.ui.MainScreen
 import com.falakpatel.stridelocal.ui.MainViewModel
+import com.falakpatel.stridelocal.ui.MeasureScreen
 import com.falakpatel.stridelocal.ui.StrideTheme
 import com.falakpatel.stridelocal.ui.UserMetricsScreen
 import kotlinx.coroutines.launch
 
-private enum class Screen { HOME, METRICS, DATA }
+/** Bottom tabs, Google Fit style. */
+private enum class Tab(val label: String, val icon: ImageVector) {
+    HOME("Home", Icons.Filled.Home),
+    FOOD("Food", Icons.AutoMirrored.Filled.List),
+    MEASURE("Measure", Icons.Filled.Favorite),
+    SETTINGS("Settings", Icons.Filled.Settings),
+}
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
@@ -41,20 +62,51 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(statusBarStyle = dark, navigationBarStyle = dark)
         setContent {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
-            StrideTheme(Color(state.profile.accentArgb)) {
-                var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+            val accent = Color(state.profile.accentArgb)
+            StrideTheme(accent) {
+                var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
+                var editing by rememberSaveable { mutableStateOf(false) }
                 if (!state.loaded) return@StrideTheme
-                // First launch goes straight to the profile form.
-                val current = if (!state.profile.isConfigured) Screen.METRICS else screen
-                BackHandler(enabled = current != Screen.HOME) { screen = Screen.HOME }
-                when (current) {
-                    Screen.HOME -> MainScreen(state, onEditProfile = { screen = Screen.METRICS }, onOpenData = { screen = Screen.DATA })
-                    Screen.METRICS -> UserMetricsScreen(
+
+                // First launch (or the profile button) shows the metrics form full screen.
+                if (editing || !state.profile.isConfigured) {
+                    BackHandler(enabled = editing && state.profile.isConfigured) { editing = false }
+                    UserMetricsScreen(
                         initial = state.profile,
-                        onSave = { viewModel.saveProfile(it); screen = Screen.HOME },
-                        onBack = if (state.profile.isConfigured) ({ screen = Screen.HOME }) else null,
+                        onSave = { viewModel.saveProfile(it); editing = false },
+                        onBack = if (state.profile.isConfigured) ({ editing = false }) else null,
                     )
-                    Screen.DATA -> DataScreen(Color(state.profile.accentArgb), onBack = { screen = Screen.HOME })
+                    return@StrideTheme
+                }
+
+                BackHandler(enabled = tab != Tab.HOME) { tab = Tab.HOME }
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar(containerColor = Color.Black) {
+                            Tab.entries.forEach { t ->
+                                NavigationBarItem(
+                                    selected = tab == t,
+                                    onClick = { tab = t },
+                                    icon = { Icon(t.icon, contentDescription = t.label) },
+                                    label = { Text(t.label) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    ),
+                                )
+                            }
+                        }
+                    },
+                ) { pad ->
+                    Box(Modifier.padding(bottom = pad.calculateBottomPadding())) {
+                        when (tab) {
+                            Tab.HOME -> MainScreen(state, onEditProfile = { editing = true })
+                            Tab.FOOD -> FoodScreen(state)
+                            Tab.MEASURE -> MeasureScreen()
+                            Tab.SETTINGS -> DataScreen(accent)
+                        }
+                    }
                 }
             }
         }

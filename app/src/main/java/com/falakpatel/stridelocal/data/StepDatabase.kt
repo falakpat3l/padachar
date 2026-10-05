@@ -5,6 +5,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
@@ -23,6 +24,20 @@ data class DailySteps(
     val distanceKm: Double = 0.0,
     val activeKcal: Double = 0.0,
     val goal: Int = 8_000,
+)
+
+/** One food item eaten. kcal and macros are totals (already multiplied by servings). */
+@Entity(tableName = "food_entries")
+data class FoodEntry(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val epochDay: Long,
+    val timeMs: Long,
+    val name: String,
+    val servings: Double,
+    val kcal: Double,
+    val proteinG: Double,
+    val carbsG: Double,
+    val fatG: Double,
 )
 
 /** Single row holding the last raw hardware counter value and the boot it came from. */
@@ -50,11 +65,52 @@ abstract class StepDao {
     abstract fun observeAll(): Flow<List<DailySteps>>
 
     @Query("DELETE FROM daily_steps WHERE epochDay = :day")
-    abstract suspend fun deleteDay(day: Long)
+    abstract suspend fun deleteStepsDay(day: Long)
 
-    /** Deletes the [n] oldest stored days. */
-    @Query("DELETE FROM daily_steps WHERE epochDay IN (SELECT epochDay FROM daily_steps ORDER BY epochDay ASC LIMIT :n)")
-    abstract suspend fun deleteOldest(n: Int)
+    @Query("DELETE FROM food_entries WHERE epochDay = :day")
+    abstract suspend fun deleteFoodDay(day: Long)
+
+    @Query("SELECT epochDay FROM daily_steps ORDER BY epochDay ASC LIMIT 1 OFFSET :offset")
+    abstract suspend fun nthOldestDay(offset: Int): Long?
+
+    @Query("DELETE FROM daily_steps WHERE epochDay <= :day")
+    abstract suspend fun deleteStepsUpTo(day: Long)
+
+    @Query("DELETE FROM food_entries WHERE epochDay <= :day")
+    abstract suspend fun deleteFoodUpTo(day: Long)
+
+    /** Deletes everything (steps and food) for one day. */
+    @Transaction
+    open suspend fun deleteWholeDay(day: Long) {
+        deleteStepsDay(day)
+        deleteFoodDay(day)
+    }
+
+    /** Deletes the [n] oldest stored days, steps and food together. */
+    @Transaction
+    open suspend fun deleteOldestDays(n: Int) {
+        val cutoff = nthOldestDay(n - 1) ?: return
+        deleteStepsUpTo(cutoff)
+        deleteFoodUpTo(cutoff)
+    }
+
+    @Query("SELECT * FROM daily_steps ORDER BY epochDay")
+    abstract suspend fun allDays(): List<DailySteps>
+
+    @Query("SELECT * FROM food_entries WHERE epochDay = :day ORDER BY timeMs DESC")
+    abstract fun observeFood(day: Long): Flow<List<FoodEntry>>
+
+    @Query("SELECT * FROM food_entries ORDER BY timeMs")
+    abstract suspend fun allFood(): List<FoodEntry>
+
+    @Query("SELECT COUNT(*) FROM food_entries WHERE timeMs = :timeMs AND name = :name")
+    abstract suspend fun countFood(timeMs: Long, name: String): Int
+
+    @Insert
+    abstract suspend fun insertFood(entry: FoodEntry)
+
+    @Query("DELETE FROM food_entries WHERE id = :id")
+    abstract suspend fun deleteFood(id: Long)
 
     @Upsert
     abstract suspend fun upsertDays(days: List<DailySteps>)
@@ -79,19 +135,30 @@ abstract class StepDao {
     }
 }
 
-@Database(entities = [DailySteps::class, TrackerState::class], version = 2, exportSchema = false)
+@Database(entities = [DailySteps::class, TrackerState::class, FoodEntry::class], version = 3, exportSchema = false)
 abstract class StepDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
 
     companion object {
         fun build(context: Context): StepDatabase =
             Room.databaseBuilder(context, StepDatabase::class.java, "steps.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE tracker_state ADD COLUMN lastSyncMs INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `food_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`epochDay` INTEGER NOT NULL, `timeMs` INTEGER NOT NULL, `name` TEXT NOT NULL, " +
+                        "`servings` REAL NOT NULL, `kcal` REAL NOT NULL, `proteinG` REAL NOT NULL, " +
+                        "`carbsG` REAL NOT NULL, `fatG` REAL NOT NULL)",
+                )
             }
         }
     }

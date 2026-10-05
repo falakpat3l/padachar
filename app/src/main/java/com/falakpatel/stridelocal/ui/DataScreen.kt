@@ -1,6 +1,7 @@
 package com.falakpatel.stridelocal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.falakpatel.stridelocal.data.Backup
 import com.falakpatel.stridelocal.data.HealthConnectImport
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.launch
@@ -65,7 +68,7 @@ private fun dayLabel(epochDay: Long) = LocalDate.ofEpochDay(epochDay).format(dat
 /** Data & settings: storage info, accent colour, Health Connect import, deletion. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun DataScreen(accent: Color, onBack: () -> Unit) {
+fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
     val app = LocalContext.current.strideApp
     val repo = app.stepRepository
     val scope = rememberCoroutineScope()
@@ -83,6 +86,17 @@ fun DataScreen(accent: Color, onBack: () -> Unit) {
                 .fold({ "Done: $it days imported or updated." }, { "Import failed: ${it.message}" })
         }
     }
+    var backupMsg by remember { mutableStateOf<String?>(null) }
+    val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) app.appScope.launch {
+            backupMsg = runCatching { Backup.export(app, uri) }.fold({ "Saved $it records." }, { "Backup failed: ${it.message}" })
+        }
+    }
+    val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) app.appScope.launch {
+            backupMsg = runCatching { Backup.restore(app, uri) }.fold({ "Restored: $it records added or updated." }, { "Restore failed: ${it.message}" })
+        }
+    }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
         if (HealthConnectImport.STEPS in it) runImport() else message = "Permission not given, nothing imported."
     }
@@ -90,9 +104,9 @@ fun DataScreen(accent: Color, onBack: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Data & settings") },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
-    }) { padding ->
+    }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -103,9 +117,23 @@ fun DataScreen(accent: Color, onBack: () -> Unit) {
                     Text("${days.size} days saved$since.")
                     Text(
                         "Everything is stored only on this phone, with no time limit. It stays until you delete it here. " +
-                            "Note: uninstalling the app also erases it.",
+                            "Uninstalling erases it, so save a backup file first.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            item {
+                Section("Backup") {
+                    Text(
+                        "Save steps, food and your profile to a file you choose, and load it back on this or a new phone. " +
+                            "Restoring never deletes anything.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { saveLauncher.launch("stridelocal-backup-${LocalDate.now()}.csv") }) { Text("Save backup") }
+                        OutlinedButton(onClick = { openLauncher.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Restore") }
+                    }
+                    backupMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
