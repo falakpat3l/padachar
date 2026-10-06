@@ -3,6 +3,10 @@ package com.falakpatel.stridelocal.sensor
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.falakpatel.stridelocal.reminder.MoveReminder
+import com.falakpatel.stridelocal.strideApp
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
  * Restarts tracking after a reboot or an app update.
@@ -15,7 +19,19 @@ class BootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
-            "android.intent.action.QUICKBOOT_POWERON" -> StepCounterService.start(context)
+            "android.intent.action.QUICKBOOT_POWERON" -> {
+                StepCounterService.start(context)
+                // Alarms are wiped on reboot, so plan the next move reminder again if it is on.
+                val app = context.strideApp
+                val pending = goAsync()
+                app.appScope.launch {
+                    try {
+                        if (app.userPreferences.moveReminders.first()) MoveReminder.scheduleNext(app)
+                    } finally {
+                        pending.finish()
+                    }
+                }
+            }
         }
     }
 }

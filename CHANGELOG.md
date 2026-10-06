@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.0-alpha (2026-10-06)
+
+- Move reminder in Settings (off by default): a silent "Time to move" nudge at random times, about every 1.5 hours between 7 am and 9 pm. Skipped if you walked 300+ steps since the last one. It clears itself after 15 minutes.
+- HOW-IT-WORKS.md: a plain-English guide to the code.
+- README now has screenshots.
+
 ## v0.4.0-alpha (2026-10-05)
 
 - New Activity tab: walking vs running minutes and steps, told apart by step speed (145+ steps per minute is running).

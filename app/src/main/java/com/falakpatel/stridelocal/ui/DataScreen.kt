@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,7 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.Manifest
 import com.falakpatel.stridelocal.data.Backup
+import com.falakpatel.stridelocal.reminder.MoveReminder
 import com.falakpatel.stridelocal.data.HealthConnectImport
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.launch
@@ -97,6 +100,14 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             backupMsg = runCatching { Backup.restore(app, uri) }.fold({ "Restored: $it records added or updated." }, { "Restore failed: ${it.message}" })
         }
     }
+    val reminders by remember { app.userPreferences.moveReminders }.collectAsStateWithLifecycle(false)
+    fun setReminders(on: Boolean) {
+        scope.launch { app.userPreferences.setMoveReminders(on) }
+        if (on) MoveReminder.scheduleNext(app) else MoveReminder.cancel(app)
+    }
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) setReminders(true)
+    }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
         if (HealthConnectImport.STEPS in it) runImport() else message = "Permission not given, nothing imported."
     }
@@ -120,6 +131,22 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                             "Uninstalling erases it, so save a backup file first.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            item {
+                Section("Move reminder") {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "A quiet nudge at random times, about every 1.5 hours between 7 am and 9 pm. " +
+                                "Skipped if you already walked since the last one.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(checked = reminders, onCheckedChange = { on ->
+                            if (on && !MoveReminder.hasPermission(app)) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            else setReminders(on)
+                        })
+                    }
                 }
             }
             item {

@@ -15,8 +15,8 @@
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
-    <!-- No POST_NOTIFICATIONS on purpose: on Android 13+ the tracking service then runs
-         without anything in the status bar. -->
+    <!-- Only asked for when you switch on move reminders (off by default). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
@@ -83,6 +83,10 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".reminder.MoveReminderReceiver"
+            android:exported="false" />
 
         <receiver
             android:name=".widget.StepWidgetReceiver"

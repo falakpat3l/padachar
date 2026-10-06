@@ -2,6 +2,16 @@
 
 A 100% offline, privacy-first step tracker for Android. No internet permission, no ads, no accounts. Everything stays on your phone.
 
+## Screenshots
+
+| Home | Activity | Food | Settings |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen with step rings"> | <img src="docs/screenshots/activity.png" width="190" alt="Walking vs running"> | <img src="docs/screenshots/food.png" width="190" alt="Food log with Indian dishes"> | <img src="docs/screenshots/settings.png" width="190" alt="Data and settings"> |
+
+<p align="center"><img src="docs/screenshots/widget.png" width="320" alt="Home screen widget in 2x2, 2x1, 1x2 and wide sizes"><br><em>The widget in different sizes</em></p>
+
+New to the code? Read [HOW-IT-WORKS.md](HOW-IT-WORKS.md), a plain-English tour of every part of the app.
+
 ## Features
 
 - Live steps, distance (km) and active calories, with a daily goal ring.
@@ -21,6 +31,7 @@ A 100% offline, privacy-first step tracker for Android. No internet permission, 
 
 - Food tab: log meals from a built-in list of common Indian dishes or your own entries, and see eaten vs burned for the day.
 - Activity tab: walking vs running minutes, from step speed (145+ steps per minute is running).
+- Move reminder (optional, off by default): a silent nudge at random times about every 1.5 hours, 7 am to 9 pm, skipped if you already walked.
 - Backup: save everything to a CSV file and restore it on any phone.
 - Coming next: on-device photo recognition of Indian food.
 

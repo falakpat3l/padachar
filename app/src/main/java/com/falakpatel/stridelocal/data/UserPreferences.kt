@@ -51,6 +51,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
         val STRIDE = doublePreferencesKey("stride_override_m")
         val CONFIGURED = booleanPreferencesKey("configured")
         val ACCENT = intPreferencesKey("accent_argb")
+        val MOVE_REMINDERS = booleanPreferencesKey("move_reminders")
     }
 
     val profile: Flow<UserProfile> = dataStore.data
@@ -79,6 +80,14 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             if (profile.strideOverrideM != null) p[Keys.STRIDE] = profile.strideOverrideM else p.remove(Keys.STRIDE)
             p[Keys.CONFIGURED] = true
         }
+    }
+
+    val moveReminders: Flow<Boolean> = dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+        .map { it[Keys.MOVE_REMINDERS] ?: false }
+
+    suspend fun setMoveReminders(on: Boolean) {
+        dataStore.edit { it[Keys.MOVE_REMINDERS] = on }
     }
 
     suspend fun saveAccent(argb: Int) {
