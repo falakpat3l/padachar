@@ -67,9 +67,7 @@ fun ActivityScreen(state: MainUiState) {
             }
             WeekSplit(state.week, walk, run)
             Text(
-                "Running is a minute with about $RUN_STEPS_PER_MIN or more steps; walking is 40 or more. " +
-                    "Running minutes use a longer stride and a higher calorie rate. Some phones report steps late " +
-                    "while the screen is off, so minutes can be a little off.",
+                "Run = $RUN_STEPS_PER_MIN+ steps a minute. Walk = 40+.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

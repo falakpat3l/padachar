@@ -89,18 +89,14 @@ fun FoodScreen(state: MainUiState) {
                             Stat2((if (balance > 0) "+" else "") + fmt(balance), if (balance <= 0) "deficit" else "surplus")
                         }
                         Text(
-                            "Protein ${fmt(entries.sumOf { it.proteinG })} g  |  Carbs ${fmt(entries.sumOf { it.carbsG })} g  |  Fat ${fmt(entries.sumOf { it.fatG })} g",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            "Burned = BMR for the whole day + active kcal from steps.",
+                            "P ${fmt(entries.sumOf { it.proteinG })} g   C ${fmt(entries.sumOf { it.carbsG })} g   F ${fmt(entries.sumOf { it.fatG })} g",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
             if (entries.isNotEmpty()) {
-                item { Text("Today", style = MaterialTheme.typography.titleSmall) }
+                item { Text("Eaten today", style = MaterialTheme.typography.titleSmall) }
                 items(entries, key = { it.id }) { e ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -117,9 +113,9 @@ fun FoodScreen(state: MainUiState) {
                 Column {
                     OutlinedTextField(
                         value = query, onValueChange = { query = it }, singleLine = true,
-                        label = { Text("Search dishes (dal, roti, dhokla...)") }, modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Search food") }, modifier = Modifier.fillMaxWidth(),
                     )
-                    TextButton(onClick = { custom = true }) { Text("+ Add your own food") }
+                    TextButton(onClick = { custom = true }) { Text("+ Custom") }
                 }
             }
             items(dishes, key = { it.name }) { d ->
@@ -130,7 +126,7 @@ fun FoodScreen(state: MainUiState) {
             }
             item {
                 Text(
-                    "Values are typical home-style estimates per serving. Oil, ghee and portion size change them.",
+                    "Estimates per serving.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp),
                 )
@@ -172,7 +168,7 @@ fun FoodScreen(state: MainUiState) {
         val k = kcal.toDoubleOrNull()
         AlertDialog(
             onDismissRequest = { custom = false },
-            title = { Text("Add your own food") },
+            title = { Text("Custom food") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)

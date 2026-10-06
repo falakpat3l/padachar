@@ -83,21 +83,21 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
     var hue by remember { mutableFloatStateOf(-1f) }
 
     fun runImport() {
-        message = "Importing from Health Connect..."
+        message = "Importing..."
         app.appScope.launch {
             message = runCatching { HealthConnectImport.importAll(app) }
-                .fold({ "Done: $it days imported or updated." }, { "Import failed: ${it.message}" })
+                .fold({ "$it days imported." }, { "Import failed: ${it.message}" })
         }
     }
     var backupMsg by remember { mutableStateOf<String?>(null) }
     val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) app.appScope.launch {
-            backupMsg = runCatching { Backup.export(app, uri) }.fold({ "Saved $it records." }, { "Backup failed: ${it.message}" })
+            backupMsg = runCatching { Backup.export(app, uri) }.fold({ "Saved." }, { "Backup failed: ${it.message}" })
         }
     }
     val openLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) app.appScope.launch {
-            backupMsg = runCatching { Backup.restore(app, uri) }.fold({ "Restored: $it records added or updated." }, { "Restore failed: ${it.message}" })
+            backupMsg = runCatching { Backup.restore(app, uri) }.fold({ "Restored $it records." }, { "Restore failed: ${it.message}" })
         }
     }
     val reminders by remember { app.userPreferences.moveReminders }.collectAsStateWithLifecycle(false)
@@ -109,12 +109,12 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
         if (ok) setReminders(true)
     }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
-        if (HealthConnectImport.STEPS in it) runImport() else message = "Permission not given, nothing imported."
+        if (HealthConnectImport.STEPS in it) runImport() else message = "Not allowed."
     }
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text("Data & settings") },
+            title = { Text("Settings") },
             navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
     }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
@@ -123,22 +123,20 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Section("Storage") {
+                Section("Data") {
                     val since = days.lastOrNull()?.let { " since ${dayLabel(it.epochDay)}" } ?: ""
-                    Text("${days.size} days saved$since.")
+                    Text("${days.size} days$since.")
                     Text(
-                        "Everything is stored only on this phone, with no time limit. It stays until you delete it here. " +
-                            "Uninstalling erases it, so save a backup file first.",
+                        "On this phone only. Uninstalling deletes it, so keep a backup.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
             item {
-                Section("Move reminder") {
+                Section("Reminder") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "A quiet nudge at random times, about every 1.5 hours between 7 am and 9 pm. " +
-                                "Skipped if you already walked since the last one.",
+                            "A quiet nudge about every 1.5 h, 7 am to 9 pm.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                         )
@@ -152,8 +150,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             item {
                 Section("Backup") {
                     Text(
-                        "Save steps, food and your profile to a file you choose, and load it back on this or a new phone. " +
-                            "Restoring never deletes anything.",
+                        "Steps, food and profile in one file.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -164,7 +161,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                 }
             }
             item {
-                Section("Accent colour") {
+                Section("Colour") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         AccentPresets.forEach { c ->
                             Box(
@@ -174,8 +171,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                             )
                         }
                     }
-                    Text("Custom hue", style = MaterialTheme.typography.bodySmall)
-                    Slider(
+                                        Slider(
                         value = if (hue >= 0) hue else 0f,
                         onValueChange = { hue = it },
                         onValueChangeFinished = {
@@ -187,10 +183,9 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                 }
             }
             item {
-                Section("Import old steps") {
+                Section("Google Fit history") {
                     Text(
-                        "Copy past days from Google Fit / Google Health through Health Connect. It runs on the phone, " +
-                            "no internet. In Google Fit, turn on Health Connect sync first.",
+                        "Via Health Connect. Turn on Health Connect sync in Google Fit first.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(onClick = {
@@ -199,24 +194,24 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                                 if (HealthConnectImport.hasPermission(app)) runImport() else hcLauncher.launch(HealthConnectImport.PERMISSIONS)
                             }
                             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
-                                message = "Please install or update Health Connect from the Play Store."
-                            else -> message = "Health Connect is not available on this phone."
+                                message = "Update Health Connect from the Play Store."
+                            else -> message = "Health Connect not available."
                         }
-                    }) { Text("Import from Health Connect") }
+                    }) { Text("Import") }
                     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
-                Section("Delete oldest days") {
+                Section("Delete") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(1, 5).forEach { c ->
-                            FilterChip(selected = chunk == c, onClick = { chunk = c; count = 1 }, label = { Text(if (c == 1) "1 day steps" else "5 day steps") })
+                            FilterChip(selected = chunk == c, onClick = { chunk = c; count = 1 }, label = { Text(if (c == 1) "1 day" else "5 days") })
                         }
                     }
                     val n = (count * chunk).coerceAtMost(days.size)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedButton(onClick = { if (count > 1) count-- }) { Text("-") }
-                        Text("$n days", style = MaterialTheme.typography.titleMedium)
+                        Text(if (n == 1) "1 day" else "$n days", style = MaterialTheme.typography.titleMedium)
                         OutlinedButton(onClick = { if (count * chunk < days.size) count++ }) { Text("+") }
                     }
                     Button(enabled = n > 0, onClick = {
@@ -225,10 +220,10 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                             "Delete $n days, ${dayLabel(oldest.last().epochDay)} to ${dayLabel(oldest.first().epochDay)}?",
                             suspend { repo.deleteOldest(n) },
                         )
-                    }) { Text("Delete $n oldest days") }
+                    }) { Text("Delete oldest") }
                 }
             }
-            item { Text("All days (newest first)", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp)) }
+            item { Text("All days", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp)) }
             items(days, key = { it.epochDay }) { d ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {

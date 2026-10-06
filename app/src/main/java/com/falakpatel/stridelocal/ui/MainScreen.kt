@@ -84,11 +84,6 @@ fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
             TodayCard(state.today, state.profile)
             WeekCard(state.week, state.profile.dailyGoal)
             BodyCard(state.profile)
-            Text(
-                "All data stays on this phone. No internet permission, no ads, no accounts.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -117,8 +112,8 @@ private fun PermissionGate() {
 
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Physical activity permission needed", fontWeight = FontWeight.Bold)
-            Text("Android only shares step data with apps that have this permission. It never leaves your phone.")
+            Text("Allow physical activity", fontWeight = FontWeight.Bold)
+            Text("Needed to count steps. Data stays on this phone.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { launcher.launch(needed) }) { Text("Allow") }
                 OutlinedButton(onClick = {
@@ -222,8 +217,8 @@ private fun WeekCard(week: List<DailySteps>, goal: Int) {
 private fun BodyCard(p: UserProfile) {
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Stat(String.format(Locale.getDefault(), "%.1f", p.bmi), "BMI, ${p.bmiCategory.label}")
-            Stat(String.format(Locale.getDefault(), "%.0f", p.bmr), "BMR kcal/day")
+            Stat(String.format(Locale.getDefault(), "%.1f", p.bmi), "BMI")
+            Stat(String.format(Locale.getDefault(), "%.0f", p.bmr), "BMR")
             Stat(String.format(Locale.getDefault(), "%.2f m", p.strideM), "stride")
         }
     }

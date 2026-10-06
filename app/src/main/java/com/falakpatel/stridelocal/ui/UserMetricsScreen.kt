@@ -57,7 +57,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Your metrics") },
+                title = { Text("Profile") },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -83,9 +83,9 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 }
             }
             NumberField("Daily step goal", goal, g == null, decimal = false) { goal = it }
-            NumberField("Calibrated stride in m (optional)", stride, !strideOk) { stride = it }
+            NumberField("Stride in m (optional)", stride, !strideOk) { stride = it }
             Text(
-                "Leave stride blank to use height x 0.414. To calibrate: walk 100 steps, measure the distance, divide by 100.",
+                "Blank = auto from height.",
                 style = MaterialTheme.typography.bodySmall,
             )
 
@@ -93,9 +93,8 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 val bmi = HealthMetrics.bmi(w, h)
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Preview", style = MaterialTheme.typography.titleMedium)
-                        Text(String.format(Locale.getDefault(), "BMI %.1f (%s)", bmi, HealthMetrics.bmiCategory(bmi).label))
-                        Text(String.format(Locale.getDefault(), "BMR %.0f kcal/day (Mifflin-St Jeor)", HealthMetrics.bmrMifflinStJeor(w, h, a, sex)))
+                                                Text(String.format(Locale.getDefault(), "BMI %.1f (%s)", bmi, HealthMetrics.bmiCategory(bmi).label))
+                        Text(String.format(Locale.getDefault(), "BMR %.0f kcal/day", HealthMetrics.bmrMifflinStJeor(w, h, a, sex)))
                         Text(String.format(Locale.getDefault(), "Stride %.2f m", s ?: HealthMetrics.strideMeters(h)))
                     }
                 }
