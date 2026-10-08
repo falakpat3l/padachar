@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2-alpha
+- New look to match falakpatel.com: serif text, thin outlined cards, small corners, link-blue default colour
+- Titles, cards and text centred
+- Charts: step numbers on the y axis, day names on the x axis, the total above each bar (or km when the number does not fit), and tap a bar for that day's details
+- Colour picker is now one short row of swatches
+- App icon: pitch black background, same walking figure
+- Settings: new About section (app version, who made it, links to my website and the source code)
+
 ## 0.5.1-alpha
 - Shorter, cleaner text across the app and docs
 

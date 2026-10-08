@@ -24,7 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,7 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,7 +63,7 @@ import java.util.Locale
 fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("StrideLocal") },
                 actions = {
                     IconButton(onClick = onEditProfile) { Icon(Icons.Filled.Person, contentDescription = "Your metrics") }
@@ -110,8 +110,8 @@ private fun PermissionGate() {
     }
     if (activityGranted) return
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+        Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Allow physical activity", fontWeight = FontWeight.Bold)
             Text("Needed to count steps. Data stays on this phone.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -178,44 +178,27 @@ private fun Stat(value: String, label: String) {
 private fun WeekCard(week: List<DailySteps>, goal: Int) {
     if (week.isEmpty()) return
     val bar = MaterialTheme.colorScheme.primary
-    val goalLine = MaterialTheme.colorScheme.tertiary
-    val maxSteps = maxOf(goal.toLong(), week.maxOf { it.steps }, 1L)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Last 7 days", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
-            Canvas(Modifier.fillMaxWidth().height(120.dp)) {
-                val slot = size.width / week.size
-                val barWidth = slot * 0.55f
-                week.forEachIndexed { i, d ->
-                    val h = size.height * d.steps / maxSteps
-                    drawRoundRect(
-                        color = bar,
-                        topLeft = Offset(i * slot + (slot - barWidth) / 2, size.height - h),
-                        size = Size(barWidth, h),
-                        cornerRadius = CornerRadius(6.dp.toPx()),
-                    )
-                }
-                val y = size.height - size.height * goal / maxSteps
-                drawLine(goalLine, Offset(0f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
-            }
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { d ->
-                    Text(
-                        LocalDate.ofEpochDay(d.epochDay).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                }
-            }
+            StepBarChart(
+                days = week,
+                parts = { listOf(BarPart(it.steps, bar)) },
+                details = { d ->
+                    val day = LocalDate.ofEpochDay(d.epochDay).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()))
+                    String.format(Locale.getDefault(), "%s: %,d steps, %.2f km", day, d.steps, d.distanceKm)
+                },
+                caption = String.format(Locale.getDefault(), "Steps per day. Dashed line: your goal (%,d). Tap a bar for details.", goal),
+                goal = goal,
+            )
         }
     }
 }
 
 @Composable
 private fun BodyCard(p: UserProfile) {
-    Card(Modifier.fillMaxWidth()) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Stat(String.format(Locale.getDefault(), "%.1f", p.bmi), "BMI")
             Stat(String.format(Locale.getDefault(), "%.0f", p.bmr), "BMR")

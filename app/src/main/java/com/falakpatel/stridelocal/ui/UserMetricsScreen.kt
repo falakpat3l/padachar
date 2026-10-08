@@ -12,7 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -21,7 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +56,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Profile") },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) {
@@ -73,7 +73,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
             NumberField("Weight (kg)", weight, w == null) { weight = it }
             NumberField("Height (cm)", height, h == null) { height = it }
             NumberField("Age (years)", age, a == null, decimal = false) { age = it }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                 Sex.entries.forEach { option ->
                     FilterChip(
                         selected = sex == option,
@@ -91,8 +91,8 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
 
             if (w != null && h != null && a != null) {
                 val bmi = HealthMetrics.bmi(w, h)
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                                 Text(String.format(Locale.getDefault(), "BMI %.1f (%s)", bmi, HealthMetrics.bmiCategory(bmi).label))
                         Text(String.format(Locale.getDefault(), "BMR %.0f kcal/day", HealthMetrics.bmrMifflinStJeor(w, h, a, sex)))
                         Text(String.format(Locale.getDefault(), "Stride %.2f m", s ?: HealthMetrics.strideMeters(h)))

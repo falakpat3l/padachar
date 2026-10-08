@@ -24,7 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -36,7 +36,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
@@ -80,7 +81,6 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
     var confirm by remember { mutableStateOf<Pair<String, suspend () -> Unit>?>(null) }
     var chunk by remember { mutableIntStateOf(1) }
     var count by remember { mutableIntStateOf(1) }
-    var hue by remember { mutableFloatStateOf(-1f) }
 
     fun runImport() {
         message = "Importing..."
@@ -113,7 +113,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
     }
 
     Scaffold(topBar = {
-        TopAppBar(
+        CenterAlignedTopAppBar(
             title = { Text("Settings") },
             navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
@@ -162,24 +162,16 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             }
             item {
                 Section("Colour") {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // One short row of swatches. Tap one to use it across the app.
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         AccentPresets.forEach { c ->
                             Box(
-                                Modifier.size(34.dp).background(c, CircleShape)
-                                    .then(if (c == accent) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
+                                Modifier.size(28.dp).background(c, CircleShape)
+                                    .then(if (c == accent) Modifier.border(2.dp, Color.White, CircleShape) else Modifier)
                                     .clickable { scope.launch { app.userPreferences.saveAccent(c.toArgb()) } },
                             )
                         }
                     }
-                                        Slider(
-                        value = if (hue >= 0) hue else 0f,
-                        onValueChange = { hue = it },
-                        onValueChangeFinished = {
-                            scope.launch { app.userPreferences.saveAccent(Color.hsv(hue, 0.8f, 0.95f).toArgb()) }
-                        },
-                        valueRange = 0f..359f,
-                    )
-                    if (hue >= 0) Box(Modifier.fillMaxWidth().size(8.dp).background(Color.hsv(hue, 0.8f, 0.95f), CircleShape))
                 }
             }
             item {
@@ -223,6 +215,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                     }) { Text("Delete oldest") }
                 }
             }
+            item { AboutSection() }
             item { Text("All days", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp)) }
             items(days, key = { it.epochDay }) { d ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -254,10 +247,43 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(16.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             content()
+        }
+    }
+}
+
+// About the app and its maker. Links open in the phone's browser; the app
+// itself still has no internet permission.
+@Composable
+private fun AboutSection() {
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val version = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+    }
+    fun open(url: String) = runCatching { uriHandler.openUri(url) }
+
+    Section("About") {
+        Text("StrideLocal $version", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "A private step tracker. Everything stays on this phone: no account, no ads, no internet.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text("Made by Falak Patel", fontWeight = FontWeight.Bold)
+        Text(
+            "Pharmacist turned medical device engineer (M.Tech, IIT Hyderabad). I build wearable robotics and AI workflows for healthcare.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { open("https://falakpatel.com") }) { Text("Website") }
+            OutlinedButton(onClick = { open("https://github.com/falakpat3l/stride-local") }) { Text("Source code") }
         }
     }
 }

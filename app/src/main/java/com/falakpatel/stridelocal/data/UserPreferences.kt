@@ -34,7 +34,8 @@ data class UserProfile(
     val bmiCategory get() = HealthMetrics.bmiCategory(bmi)
     val bmr: Double get() = HealthMetrics.bmrMifflinStJeor(weightKg, heightCm, ageYears, sex)
 
-    companion object { const val DEFAULT_ACCENT = 0xFF00C2A8.toInt() }
+    // Default accent: the link blue from falakpatel.com
+    companion object { const val DEFAULT_ACCENT = 0xFF8AB4F8.toInt() }
 }
 
 val Context.userDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")

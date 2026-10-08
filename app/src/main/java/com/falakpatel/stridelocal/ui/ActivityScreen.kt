@@ -17,12 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +49,7 @@ fun ActivityScreen(state: MainUiState) {
     val walk = MaterialTheme.colorScheme.primary
     val run = MaterialTheme.colorScheme.secondary
     val t = state.today
-    Scaffold(topBar = { TopAppBar(title = { Text("Activity") }) }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
+    Scaffold(topBar = { CenterAlignedTopAppBar(title = { Text("Activity") }) }, contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -58,7 +58,7 @@ fun ActivityScreen(state: MainUiState) {
                 PaceCard("Walking", walk, t.walkMin, t.walkSteps, Modifier.weight(1f))
                 PaceCard("Running", run, t.runMin, t.runSteps, Modifier.weight(1f))
             }
-            Card(Modifier.fillMaxWidth()) {
+            OutlinedCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Big("${t.walkMin + t.runMin}", "active min")
                     Big(String.format(Locale.getDefault(), "%.2f", t.distanceKm), "km")
@@ -76,8 +76,8 @@ fun ActivityScreen(state: MainUiState) {
 
 @Composable
 private fun PaceCard(title: String, color: Color, minutes: Int, steps: Long, modifier: Modifier) {
-    Card(modifier) {
-        Column(Modifier.padding(16.dp)) {
+    OutlinedCard(modifier) {
+        Column(Modifier.padding(16.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).background(color, CircleShape))
                 Spacer(Modifier.width(8.dp))
@@ -102,30 +102,19 @@ private fun Big(value: String, label: String) {
 @Composable
 private fun WeekSplit(week: List<DailySteps>, walk: Color, run: Color) {
     if (week.isEmpty()) return
-    val max = maxOf(week.maxOf { it.steps }, 1L)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Last 7 days", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
-            Canvas(Modifier.fillMaxWidth().height(120.dp)) {
-                val slot = size.width / week.size
-                val w = slot * 0.55f
-                week.forEachIndexed { i, d ->
-                    val x = i * slot + (slot - w) / 2
-                    val walkH = size.height * d.walkSteps / max
-                    val runH = size.height * d.runSteps.coerceAtMost(d.steps) / max
-                    drawRoundRect(walk, Offset(x, size.height - walkH), Size(w, walkH), CornerRadius(6.dp.toPx()))
-                    if (runH > 0f) drawRoundRect(run, Offset(x, size.height - walkH - runH), Size(w, runH), CornerRadius(6.dp.toPx()))
-                }
-            }
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { d ->
-                    Text(
-                        LocalDate.ofEpochDay(d.epochDay).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                        modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center,
-                    )
-                }
-            }
+            StepBarChart(
+                days = week,
+                parts = { listOf(BarPart(it.walkSteps, walk), BarPart(it.runSteps.coerceAtMost(it.steps), run)) },
+                details = { d ->
+                    val day = LocalDate.ofEpochDay(d.epochDay).dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+                    String.format(Locale.getDefault(), "%s: %,d walking, %,d running", day, d.walkSteps, d.runSteps.coerceAtMost(d.steps))
+                },
+                caption = "Steps per day, walking (bottom) and running (top). Tap a bar for details.",
+            )
         }
     }
 }
