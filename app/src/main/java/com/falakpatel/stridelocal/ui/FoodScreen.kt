@@ -48,6 +48,7 @@ import com.falakpatel.stridelocal.data.FoodEntry
 import com.falakpatel.stridelocal.data.IndianDishes
 import com.falakpatel.stridelocal.sensor.DayClock
 import com.falakpatel.stridelocal.strideApp
+import com.falakpatel.stridelocal.widget.refreshWidgets
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -107,7 +108,7 @@ fun FoodScreen(state: MainUiState) {
                             Text(e.name + if (e.servings != 1.0) " x ${fmt(e.servings, 1)}" else "")
                             Text("${fmt(e.kcal)} kcal  |  P ${fmt(e.proteinG)} g", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { app.appScope.launch { repo.deleteFood(e.id) } }) {
+                        IconButton(onClick = { app.appScope.launch { repo.deleteFood(e.id); refreshWidgets(app) } }) {
                             Icon(Icons.Filled.Delete, "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -157,7 +158,7 @@ fun FoodScreen(state: MainUiState) {
             confirmButton = {
                 TextButton(onClick = {
                     val e = newEntry(d.name, servings, d.kcal, d.protein, d.carbs, d.fat)
-                    app.appScope.launch { repo.addFood(e) }
+                    app.appScope.launch { repo.addFood(e); refreshWidgets(app) }
                     picked = null
                 }) { Text("Add") }
             },
@@ -185,7 +186,7 @@ fun FoodScreen(state: MainUiState) {
             confirmButton = {
                 TextButton(enabled = name.isNotBlank() && k != null, onClick = {
                     val e = newEntry(name.trim(), 1.0, k ?: 0.0, protein.toDoubleOrNull() ?: 0.0, 0.0, 0.0)
-                    app.appScope.launch { repo.addFood(e) }
+                    app.appScope.launch { repo.addFood(e); refreshWidgets(app) }
                     custom = false
                 }) { Text("Add") }
             },

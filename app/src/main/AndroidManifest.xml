@@ -100,5 +100,15 @@
                 android:resource="@xml/step_widget_info" />
         </receiver>
 
+        <!-- "Widget settings": pick steps, distance or calorie deficit for one widget. -->
+        <activity
+            android:name=".widget.WidgetSettingsActivity"
+            android:exported="true"
+            android:label="@string/widget_settings">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
     </application>
 </manifest>

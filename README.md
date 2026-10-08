@@ -16,7 +16,7 @@
 - Walking vs running minutes
 - Week, month and year charts with daily averages
 - Food log with common Indian dishes, eaten vs burned, optional daily food goal
-- Home screen widget (1x1 to 2x2)
+- Home screen widget (1x1 to 2x2): shows steps, distance or calorie deficit, your pick
 - Optional move reminder, 7 am to 9 pm
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour

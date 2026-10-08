@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1-alpha
+- Widget text now uses the app's font, Exo 2
+- Each widget can show steps, distance or calorie deficit: long-press it, then "Widget settings". Everything else about the widget stays the same
+- The widget updates straight away when you add or remove food
+- The rings widget is gone, replaced on Home by the four goal lines
+
 ## 0.6.0-alpha
 - New name: **padachar** (formerly StrideLocal), with a new logo as the app icon. Updates still install over the old app and keep your data; old backups still restore.
 - New font: Exo 2, bundled in the app (SIL Open Font License, see docs/fonts)

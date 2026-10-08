@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">padachar</string>
-    <string name="widget_name">padachar steps</string>
-    <string name="widget_description">Live steps, goal progress and distance. Fully offline.</string>
+    <string name="widget_name">padachar</string>
+    <string name="widget_description">Steps, distance or calorie deficit, with goal progress. Fully offline.</string>
+    <string name="widget_settings">Widget settings</string>
     <string name="channel_name">Step tracking</string>
 </resources>

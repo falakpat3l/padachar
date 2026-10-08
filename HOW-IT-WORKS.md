@@ -46,7 +46,8 @@ The phone has a step chip that keeps a running total since it was switched on. T
 
 ## Widget and reminder
 
-- `widget/StepWidget.kt`: layout changes with size.
+- `widget/StepWidget.kt`: layout changes with size. Shows steps, distance or calorie deficit; text is drawn in Exo 2 as small pictures, because widgets cannot load font files.
+- `widget/WidgetSettingsActivity.kt`: the "Widget settings" screen (long-press the widget) where you pick what it shows. Each widget keeps its own choice.
 - `reminder/ReminderSchedule.kt`: picks a random time 75 to 105 minutes ahead, 7 am to 9 pm, skipped if you walked.
 - `reminder/MoveReminder.kt`: sets the alarm and shows a silent notification.
 
