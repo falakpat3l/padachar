@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2-alpha
+- Swipe left or right to move between Home, Activity, Food and Settings (Home is the first page, Settings the last). The bottom bar still works too
+- Swiping across a chart still moves the day marker, not the page
+- The "avg" label on the Home chart no longer hides behind the first bar
+- New screenshots in the README
+
 ## 0.6.1-alpha
 - Widget text now uses the app's font, Exo 2
 - Each widget can show steps, distance or calorie deficit: long-press it, then "Widget settings". Everything else about the widget stays the same

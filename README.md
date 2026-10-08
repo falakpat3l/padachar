@@ -20,6 +20,7 @@
 - Optional move reminder, 7 am to 9 pm
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour
+- Swipe between the four tabs
 
 ## Install
 

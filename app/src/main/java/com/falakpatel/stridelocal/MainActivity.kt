@@ -9,6 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -26,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -64,7 +67,11 @@ class MainActivity : ComponentActivity() {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             val accent = Color(state.profile.accentArgb)
             StrideTheme(accent) {
-                var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
+                // The four tabs sit side by side: swipe left or right, or tap the bottom bar.
+                // Home is the first page and Settings the last, so swiping stops at both ends.
+                val pager = rememberPagerState(pageCount = { Tab.entries.size })
+                val scope = rememberCoroutineScope()
+                fun goTo(t: Tab) { scope.launch { pager.animateScrollToPage(t.ordinal) } }
                 var editing by rememberSaveable { mutableStateOf(false) }
                 if (!state.loaded) return@StrideTheme
 
@@ -79,14 +86,14 @@ class MainActivity : ComponentActivity() {
                     return@StrideTheme
                 }
 
-                BackHandler(enabled = tab != Tab.HOME) { tab = Tab.HOME }
+                BackHandler(enabled = pager.currentPage != Tab.HOME.ordinal) { goTo(Tab.HOME) }
                 Scaffold(
                     bottomBar = {
                         NavigationBar(containerColor = Color.Black) {
                             Tab.entries.forEach { t ->
                                 NavigationBarItem(
-                                    selected = tab == t,
-                                    onClick = { tab = t },
+                                    selected = pager.targetPage == t.ordinal,
+                                    onClick = { goTo(t) },
                                     icon = {
                                         if (t.icon != null) Icon(t.icon, contentDescription = t.label)
                                         else Icon(painterResource(R.drawable.ic_stat_steps), contentDescription = t.label)
@@ -102,12 +109,14 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                 ) { pad ->
-                    Box(Modifier.padding(bottom = pad.calculateBottomPadding())) {
-                        when (tab) {
-                            Tab.HOME -> MainScreen(state, onEditProfile = { editing = true })
-                            Tab.FOOD -> FoodScreen(state)
-                            Tab.ACTIVITY -> ActivityScreen(state)
-                            Tab.SETTINGS -> DataScreen(accent)
+                    HorizontalPager(pager, Modifier.padding(bottom = pad.calculateBottomPadding())) { page ->
+                        Box(Modifier.fillMaxSize()) {
+                            when (Tab.entries[page]) {
+                                Tab.HOME -> MainScreen(state, onEditProfile = { editing = true })
+                                Tab.FOOD -> FoodScreen(state)
+                                Tab.ACTIVITY -> ActivityScreen(state)
+                                Tab.SETTINGS -> DataScreen(accent)
+                            }
                         }
                     }
                 }

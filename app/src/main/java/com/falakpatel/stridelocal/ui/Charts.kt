@@ -162,15 +162,13 @@ fun StepBarChart(
                 drawText(label, topLeft = Offset(chartRight + 6.dp.toPx(), y - label.size.height / 2f))
             }
 
-            // Average as a dashed line, labelled "avg" on the right.
-            if (average != null && average > 0) {
-                val y = yFor(average)
+            // Average as a dashed line. Its "avg" label is drawn after the bars, so a bar never hides it.
+            val avgY = if (average != null && average > 0) yFor(average) else null
+            if (avgY != null) {
                 drawLine(
-                    strong.copy(alpha = 0.5f), Offset(0f, y), Offset(chartRight, y),
+                    strong.copy(alpha = 0.5f), Offset(0f, avgY), Offset(chartRight, avgY),
                     strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())),
                 )
-                val label = measurer.measure("avg", axisStyle)
-                drawText(label, topLeft = Offset(2.dp.toPx(), y - label.size.height - 1.dp.toPx())) // left, so it never covers an axis number
             }
 
             // Pill-shaped bars. Stacked parts are drawn inside one pill outline.
@@ -199,6 +197,18 @@ fun StepBarChart(
                     val day = measurer.measure(name, axisStyle.copy(color = if (i == selected) strong else muted))
                     drawText(day, topLeft = Offset(x + barW / 2 - day.size.width / 2f, bottom + 5.dp.toPx()))
                 }
+            }
+
+            // "avg" on the left end of the dashed line, on a small black patch so it reads over a bar.
+            if (avgY != null) {
+                val label = measurer.measure("avg", axisStyle)
+                val pad = 2.dp.toPx()
+                val labelTop = avgY - label.size.height / 2f
+                drawRoundRect(
+                    Color.Black, topLeft = Offset(0f, labelTop - pad),
+                    size = Size(label.size.width + pad * 2, label.size.height + pad * 2), cornerRadius = CornerRadius(pad * 2),
+                )
+                drawText(label, topLeft = Offset(pad, labelTop))
             }
 
             // The marker: a line from the top of the chart down to a ring on the bar's top,
