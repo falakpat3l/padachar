@@ -170,7 +170,7 @@ fun StepBarChart(
                     strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())),
                 )
                 val label = measurer.measure("avg", axisStyle)
-                drawText(label, topLeft = Offset(chartRight + 6.dp.toPx(), y - label.size.height / 2f))
+                drawText(label, topLeft = Offset(2.dp.toPx(), y - label.size.height - 1.dp.toPx())) // left, so it never covers an axis number
             }
 
             // Pill-shaped bars. Stacked parts are drawn inside one pill outline.
@@ -231,7 +231,7 @@ fun StepBarChart(
                 if (inside.size.width > barW + 2.dp.toPx()) return@forEachIndexed  // bars too thin (month view): no numbers
                 if (h >= inside.size.height + 10.dp.toPx()) {
                     drawText(inside, topLeft = Offset(x + barW / 2 - inside.size.width / 2f, bottom - inside.size.height - 5.dp.toPx()))
-                } else {
+                } else if (i != selected) { // the selected day's number is already in the header
                     val above = measurer.measure(text, axisStyle)
                     drawText(above, topLeft = Offset(x + barW / 2 - above.size.width / 2f, bottom - h - above.size.height - 2.dp.toPx()))
                 }

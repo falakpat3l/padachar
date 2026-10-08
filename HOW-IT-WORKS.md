@@ -47,7 +47,6 @@ The phone has a step chip that keeps a running total since it was switched on. T
 ## Widget and reminder
 
 - `widget/StepWidget.kt`: layout changes with size.
-- `widget/RingsWidget.kt`: the three rings, drawn into an image (Glance cannot draw arcs).
 - `reminder/ReminderSchedule.kt`: picks a random time 75 to 105 minutes ahead, 7 am to 9 pm, skipped if you walked.
 - `reminder/MoveReminder.kt`: sets the alarm and shows a silent notification.
 

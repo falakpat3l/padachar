@@ -25,7 +25,6 @@ import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.updateAll
 import com.falakpatel.stridelocal.R
 import com.falakpatel.stridelocal.strideApp
-import com.falakpatel.stridelocal.widget.RingsWidget
 import com.falakpatel.stridelocal.widget.StepWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -201,7 +200,6 @@ class StepCounterService : Service(), SensorEventListener {
             if (final || newDay || now - lastWidgetMs >= WIDGET_MS) {
                 lastWidgetMs = now
                 runCatching { StepWidget().updateAll(app) }
-                runCatching { RingsWidget().updateAll(app) }
             }
         }
     }

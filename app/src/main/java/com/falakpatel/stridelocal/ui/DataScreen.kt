@@ -274,21 +274,22 @@ private fun AboutSection() {
     fun open(url: String) = runCatching { uriHandler.openUri(url) }
 
     Section("About") {
-        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = "Padachar logo", modifier = Modifier.size(72.dp))
-        Text("Padachar $version", style = MaterialTheme.typography.titleSmall)
-        Text("Padachar means walking on foot.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            "A private step tracker. Everything stays on this phone: no account, no ads, no internet.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text("Made by Falak Patel", fontWeight = FontWeight.Bold)
-        Text(
-            "Pharmacist turned medical device engineer (M.Tech, IIT Hyderabad). I build wearable robotics and AI workflows for healthcare.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { open("https://falakpatel.com") }) { Text("Website") }
-            OutlinedButton(onClick = { open("https://github.com/falakpat3l/stride-local") }) { Text("Source code") }
+        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = "padachar logo", modifier = Modifier.size(72.dp))
+        Text("padachar $version", style = MaterialTheme.typography.titleSmall)
+        Text("Falak", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        // Tap a symbol to open the link in the browser. Symbols: res/drawable/ic_web.xml etc.
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            listOf(
+                Triple(R.drawable.ic_web, "Website", "https://falakpatel.com"),
+                Triple(R.drawable.ic_github, "Source code", "https://github.com/falakpat3l/stride-local"),
+                Triple(R.drawable.ic_scholar, "Google Scholar", "https://scholar.google.com/citations?user=s6-Bs10AAAAJ"),
+                Triple(R.drawable.ic_linkedin, "LinkedIn", "https://www.linkedin.com/in/falak-pat3l"),
+                Triple(R.drawable.ic_x, "X", "https://x.com/falakpat3l"),
+            ).forEach { (icon, name, url) ->
+                IconButton(onClick = { open(url) }) {
+                    Icon(painterResource(icon), contentDescription = name, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                }
+            }
         }
     }
 }

@@ -11,7 +11,6 @@ import com.falakpatel.stridelocal.data.DailySteps
 import com.falakpatel.stridelocal.data.TrackerState
 import com.falakpatel.stridelocal.health.HealthMetrics
 import com.falakpatel.stridelocal.strideApp
-import com.falakpatel.stridelocal.widget.RingsWidget
 import com.falakpatel.stridelocal.widget.StepWidget
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -122,6 +121,5 @@ object StepSync {
             readCounterOnce(ctx)?.let { StepEngine.onCounter(ctx, it, System.currentTimeMillis()) }
         }
         runCatching { StepWidget().updateAll(ctx) }
-        runCatching { RingsWidget().updateAll(ctx) }
     }
 }

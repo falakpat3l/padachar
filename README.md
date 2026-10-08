@@ -1,8 +1,8 @@
-<p align="center"><img src="docs/logo.png" width="120" alt="Padachar logo"></p>
+<p align="center"><img src="docs/logo.png" width="120" alt="padachar logo"></p>
 
-# Padachar
+# padachar
 
-*Padachar* means walking on foot. An offline step and food tracker for Android (formerly StrideLocal). No internet permission, no ads, no account. Your data stays on your phone.
+*padachar* means walking on foot. An offline step and food tracker for Android (formerly StrideLocal). No internet permission, no ads, no account. Your data stays on your phone.
 
 | Home | Activity | Food | Settings |
 |:---:|:---:|:---:|:---:|
@@ -16,7 +16,7 @@
 - Walking vs running minutes
 - Week, month and year charts with daily averages
 - Food log with common Indian dishes, eaten vs burned, optional daily food goal
-- Two home screen widgets: steps (1x1 to 2x2) and rings
+- Home screen widget (1x1 to 2x2)
 - Optional move reminder, 7 am to 9 pm
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour

@@ -1,0 +1,8 @@
+<!-- "Deficit" symbol: a plain white figure with arrows turning around it. Edit the paths (24 x 24 grid) to change it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M9.7,4.6a2.3,2.3 0 1,0 4.6,0a2.3,2.3 0 1,0 -4.6,0Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M6.2,9.2L17.8,9.2M10.8,14.5L10.8,21M13.2,14.5L13.2,21" />
+    <path android:fillColor="#FFFFFFFF" android:strokeColor="#FFFFFFFF" android:strokeWidth="0.8" android:strokeLineJoin="round" android:pathData="M10.1,9.2L13.9,9.2L13.9,14.8L10.1,14.8Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round" android:pathData="M5.49,19.96A8.5,8.5 0 0,1 4.49,10.51M19.51,10.51A8.5,8.5 0 0,1 18.51,19.96" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5.72,8.21L5.89,11.93L2.54,10.15ZM16.84,21.96L17.44,18.28L20.35,20.73Z" />
+</vector>

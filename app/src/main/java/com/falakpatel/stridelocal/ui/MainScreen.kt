@@ -1,5 +1,6 @@
 package com.falakpatel.stridelocal.ui
 
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.painterResource
 import com.falakpatel.stridelocal.R
@@ -84,7 +85,7 @@ fun MainScreen(state: MainUiState, onEditProfile: () -> Unit) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Padachar") },
+                title = { Text("padachar") },
                 actions = {
                     IconButton(onClick = onEditProfile) { Icon(Icons.Filled.Person, contentDescription = "Your metrics") }
                 },
@@ -148,71 +149,47 @@ private fun PermissionGate() {
 }
 
 /**
- * Three rings, Google Fit style, drawn from the outside in:
- *   steps vs goal (accent), active kcal burned vs the step goal's kcal (second colour),
- *   kcal eaten vs your food goal (third colour). They sweep in when the screen opens.
- * Tap the rings to show or hide a small legend.
+ * Today's goals as four straight progress lines: steps, distance, kcal burned, kcal eaten.
+ * Each line has a small symbol at the start (where you begin) and a bigger one at the end
+ * (the goal). The lines slide to their length when the screen opens.
  */
 @Composable
 private fun TodayCard(today: DailySteps, profile: UserProfile, eatenKcal: Double) {
-    val rings = DayRings.of(today, profile, eatenKcal)
-    val stepsColor = MaterialTheme.colorScheme.primary
-    val burnColor = MaterialTheme.colorScheme.secondary
-    val eatColor = stepsColor.companion().companion()
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val sweep = tween<Float>(durationMillis = 800, easing = FastOutSlowInEasing)
-    val stepP by animateFloatAsState(rings.steps, sweep, label = "steps")
-    val burnP by animateFloatAsState(rings.burned, sweep, label = "burned")
-    val eatP by animateFloatAsState(rings.eaten, sweep, label = "eaten")
-    var showLegend by rememberSaveable { mutableStateOf(false) }
+    val g = DayRings.of(today, profile, eatenKcal)
+    val c1 = MaterialTheme.colorScheme.primary
+    val c2 = c1.companion()
+    val c3 = c2.companion()
+    val c4 = c3.companion()
+    val loc = Locale.getDefault()
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(196.dp).clickable { showLegend = !showLegend },
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                val w = 10.dp.toPx()                 // ring thickness
-                val step = w * 1.3f                   // centre-to-centre distance between rings
-                val stroke = Stroke(width = w, cap = StrokeCap.Round)
-                listOf(stepP to stepsColor, burnP to burnColor, eatP to eatColor).forEachIndexed { i, (p, color) ->
-                    val inset = w / 2 + i * step
-                    val ringSize = Size(size.width - 2 * inset, size.height - 2 * inset)
-                    drawArc(track, -90f, 360f, false, topLeft = Offset(inset, inset), size = ringSize, style = stroke)
-                    if (p > 0f) drawArc(color, -90f, 360f * p, false, topLeft = Offset(inset, inset), size = ringSize, style = stroke)
-                }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(String.format(Locale.getDefault(), "%,d", today.steps), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = stepsColor)
-                Text("steps", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        if (showLegend) {
-            Spacer(Modifier.height(10.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                LegendRow(stepsColor, R.drawable.ic_stat_steps, "Steps", String.format(Locale.getDefault(), "%,d of %,d", today.steps, profile.dailyGoal))
-                LegendRow(burnColor, R.drawable.ic_burn, "Burned", String.format(Locale.getDefault(), "%.0f of %.0f kcal", today.activeKcal, rings.burnGoalKcal))
-                LegendRow(eatColor, R.drawable.ic_eat, "Eaten", String.format(Locale.getDefault(), "%.0f of %.0f kcal", eatenKcal, rings.eatTargetKcal))
-            }
-        }
+        Text(String.format(loc, "%,d", today.steps), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = c1)
+        Text("steps today", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Stat(String.format(Locale.getDefault(), "%.2f", today.distanceKm), "km")
-            Stat(String.format(Locale.getDefault(), "%.0f", today.activeKcal), "kcal burned", R.drawable.ic_burn)
-            Stat(String.format(Locale.getDefault(), "%.0f", eatenKcal), "kcal eaten", R.drawable.ic_eat)
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            GoalLine(R.drawable.ic_stat_steps, c1, g.steps, String.format(loc, "%,d of %,d steps", today.steps, profile.dailyGoal))
+            GoalLine(R.drawable.ic_distance, c2, g.distance, String.format(loc, "%.2f of %.2f km", today.distanceKm, g.distanceGoalKm))
+            GoalLine(R.drawable.ic_burn, c3, g.burned, String.format(loc, "%.0f of %.0f kcal burned", today.activeKcal, g.burnGoalKcal))
+            GoalLine(R.drawable.ic_eat, c4, g.eaten, String.format(loc, "%.0f of %.0f kcal eaten", eatenKcal, g.eatTargetKcal))
         }
     }
 }
 
-/** One line of the ring legend: ring colour, white symbol, name, value. */
+/** One goal: small symbol, the progress line, bigger symbol, and the numbers underneath. */
 @Composable
-private fun LegendRow(color: Color, @DrawableRes symbol: Int, name: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).background(color, CircleShape))
-        Spacer(Modifier.width(8.dp))
-        Icon(painterResource(symbol), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(64.dp))
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun GoalLine(@DrawableRes symbol: Int, color: Color, fraction: Float, label: String) {
+    val shown by animateFloatAsState(fraction, tween(durationMillis = 800, easing = FastOutSlowInEasing), label = "goal")
+    val white = MaterialTheme.colorScheme.onSurface
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(painterResource(symbol), contentDescription = null, tint = white.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f).height(8.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)) {
+                if (shown > 0f) Box(Modifier.fillMaxWidth(shown).fillMaxHeight().background(color, CircleShape))
+            }
+            Spacer(Modifier.width(10.dp))
+            Icon(painterResource(symbol), contentDescription = label, tint = white, modifier = Modifier.size(26.dp))
+        }
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
