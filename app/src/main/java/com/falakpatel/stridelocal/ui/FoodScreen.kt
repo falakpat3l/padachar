@@ -1,5 +1,10 @@
 package com.falakpatel.stridelocal.ui
 
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
+import com.falakpatel.stridelocal.R
+import androidx.compose.foundation.layout.size
+import androidx.glance.appwidget.updateAll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -84,8 +89,8 @@ fun FoodScreen(state: MainUiState) {
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            Stat2(fmt(eaten), "eaten")
-                            Stat2(fmt(burned), "burned")
+                            Stat2(fmt(eaten), "eaten", R.drawable.ic_eat)
+                            Stat2(fmt(burned), "burned", R.drawable.ic_burn)
                             Stat2((if (balance > 0) "+" else "") + fmt(balance), if (balance <= 0) "deficit" else "surplus")
                         }
                         Text(
@@ -103,7 +108,7 @@ fun FoodScreen(state: MainUiState) {
                             Text(e.name + if (e.servings != 1.0) " x ${fmt(e.servings, 1)}" else "")
                             Text("${fmt(e.kcal)} kcal  |  P ${fmt(e.proteinG)} g", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { app.appScope.launch { repo.deleteFood(e.id) } }) {
+                        IconButton(onClick = { app.appScope.launch { repo.deleteFood(e.id); refreshRings(app) } }) {
                             Icon(Icons.Filled.Delete, "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -153,7 +158,7 @@ fun FoodScreen(state: MainUiState) {
             confirmButton = {
                 TextButton(onClick = {
                     val e = newEntry(d.name, servings, d.kcal, d.protein, d.carbs, d.fat)
-                    app.appScope.launch { repo.addFood(e) }
+                    app.appScope.launch { repo.addFood(e); refreshRings(app) }
                     picked = null
                 }) { Text("Add") }
             },
@@ -181,7 +186,7 @@ fun FoodScreen(state: MainUiState) {
             confirmButton = {
                 TextButton(enabled = name.isNotBlank() && k != null, onClick = {
                     val e = newEntry(name.trim(), 1.0, k ?: 0.0, protein.toDoubleOrNull() ?: 0.0, 0.0, 0.0)
-                    app.appScope.launch { repo.addFood(e) }
+                    app.appScope.launch { repo.addFood(e); refreshRings(app) }
                     custom = false
                 }) { Text("Add") }
             },
@@ -191,9 +196,15 @@ fun FoodScreen(state: MainUiState) {
 }
 
 @Composable
-private fun Stat2(value: String, label: String) {
+private fun Stat2(value: String, label: String, @DrawableRes symbol: Int? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (symbol != null) Icon(painterResource(symbol), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(label, style = MaterialTheme.typography.bodySmall)
     }
+}
+
+/** The rings widget shows kcal eaten, so redraw it when the food log changes. */
+private suspend fun refreshRings(context: android.content.Context) {
+    runCatching { com.falakpatel.stridelocal.widget.RingsWidget().updateAll(context) }
 }

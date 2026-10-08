@@ -46,6 +46,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
     var sex by rememberSaveable { mutableStateOf(initial.sex) }
     var goal by rememberSaveable { mutableStateOf(initial.dailyGoal.toString()) }
     var stride by rememberSaveable { mutableStateOf(initial.strideOverrideM?.let { trim(it) } ?: "") }
+    var food by rememberSaveable { mutableStateOf(if (initial.foodGoalKcal > 0) initial.foodGoalKcal.toString() else "") }
 
     val w = weight.toDoubleOrNull()?.takeIf { it in 20.0..300.0 }
     val h = height.toDoubleOrNull()?.takeIf { it in 100.0..250.0 }
@@ -53,7 +54,9 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
     val g = goal.toIntOrNull()?.takeIf { it in 500..100_000 }
     val s = stride.toDoubleOrNull()?.takeIf { it in 0.3..1.5 }
     val strideOk = stride.isBlank() || s != null
-    val valid = w != null && h != null && a != null && g != null && strideOk
+    val fg = food.toIntOrNull()?.takeIf { it in 500..6000 }
+    val foodOk = food.isBlank() || fg != null
+    val valid = w != null && h != null && a != null && g != null && strideOk && foodOk
 
     Scaffold(
         topBar = {
@@ -89,6 +92,11 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 "Blank = auto from height.",
                 style = MaterialTheme.typography.bodySmall,
             )
+            NumberField("Daily food goal in kcal (optional)", food, !foodOk, decimal = false) { food = it }
+            Text(
+                "Used by the eaten ring. Blank = compare with the kcal you use each day.",
+                style = MaterialTheme.typography.bodySmall,
+            )
 
             if (w != null && h != null && a != null) {
                 val bmi = HealthMetrics.bmi(w, h)
@@ -105,7 +113,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 enabled = valid,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    onSave(initial.copy(weightKg = w!!, heightCm = h!!, ageYears = a!!, sex = sex, dailyGoal = g!!, strideOverrideM = s, isConfigured = true))
+                    onSave(initial.copy(weightKg = w!!, heightCm = h!!, ageYears = a!!, sex = sex, dailyGoal = g!!, strideOverrideM = s, foodGoalKcal = fg ?: 0, isConfigured = true))
                 },
             ) { Text("Save") }
         }

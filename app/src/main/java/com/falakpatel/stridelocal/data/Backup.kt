@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
  * same item at the same time is already there, so restoring twice is safe.
  */
 object Backup {
-    private const val HEADER = "# StrideLocal backup v1"
+    private const val HEADER = "# Padachar backup v1"
 
     suspend fun export(ctx: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
         val app = ctx.strideApp
@@ -27,7 +27,7 @@ object Backup {
         val out = ctx.contentResolver.openOutputStream(uri) ?: error("Could not open the file")
         out.bufferedWriter().use { w ->
             w.write(HEADER + "\n")
-            w.write("P,${p.weightKg},${p.heightCm},${p.ageYears},${p.sex.name},${p.dailyGoal},${p.strideOverrideM ?: ""},${p.accentArgb}\n")
+            w.write("P,${p.weightKg},${p.heightCm},${p.ageYears},${p.sex.name},${p.dailyGoal},${p.strideOverrideM ?: ""},${p.accentArgb},${p.foodGoalKcal}\n")
             days.forEach { w.write("D,${it.epochDay},${it.steps},${it.distanceKm},${it.activeKcal},${it.goal},${it.walkMin},${it.runMin},${it.runSteps}\n") }
             food.forEach {
                 w.write("F,${it.epochDay},${it.timeMs},${Csv.field(it.name)},${it.servings},${it.kcal},${it.proteinG},${it.carbsG},${it.fatG}\n")
@@ -42,7 +42,9 @@ object Backup {
         val repo = app.stepRepository
         val input = ctx.contentResolver.openInputStream(uri) ?: error("Could not open the file")
         val lines = input.bufferedReader().use { it.readLines() }
-        require(lines.firstOrNull()?.startsWith("# StrideLocal backup") == true) { "This is not a StrideLocal backup file" }
+        // Backups made before the rename say "StrideLocal"; both are accepted.
+        val first = lines.firstOrNull().orEmpty()
+        require(first.startsWith("# Padachar backup") || first.startsWith("# StrideLocal backup")) { "This is not a Padachar backup file" }
         var changed = 0
         for (line in lines.drop(1)) {
             val f = Csv.split(line)
@@ -50,7 +52,10 @@ object Backup {
                 when (f[0]) {
                     "P" -> {
                         app.userPreferences.save(
-                            UserProfile(f[1].toDouble(), f[2].toDouble(), f[3].toInt(), Sex.valueOf(f[4]), f[5].toInt(), f[6].toDoubleOrNull(), true),
+                            UserProfile(
+                                f[1].toDouble(), f[2].toDouble(), f[3].toInt(), Sex.valueOf(f[4]), f[5].toInt(), f[6].toDoubleOrNull(), true,
+                                foodGoalKcal = f.getOrNull(8)?.toIntOrNull() ?: 0, // older backups have no food goal
+                            ),
                         )
                         app.userPreferences.saveAccent(f[7].toInt())
                     }

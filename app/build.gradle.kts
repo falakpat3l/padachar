@@ -15,8 +15,8 @@ android {
         applicationId = "com.falakpatel.stridelocal"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.5.2-alpha"
+        versionCode = 8
+        versionName = "0.6.0-alpha"
         resourceConfigurations += "en" // drop unused library translations (smaller APK)
     }
 
@@ -60,6 +60,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended") // walking and running symbols (unused icons are stripped from the APK)
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     implementation("androidx.core:core-ktx:1.15.0")

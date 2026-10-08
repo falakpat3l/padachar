@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "StrideLocal"
+rootProject.name = "Padachar"
 include(":app")

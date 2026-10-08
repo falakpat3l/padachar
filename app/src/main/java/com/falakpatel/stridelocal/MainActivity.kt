@@ -130,8 +130,8 @@ class PrivacyActivity : ComponentActivity() {
             StrideTheme(Color(UserProfile.DEFAULT_ACCENT)) {
                 Surface(Modifier.fillMaxSize()) {
                     Text(
-                        "StrideLocal privacy policy\n\n" +
-                            "StrideLocal has no internet permission. It reads step and distance history from " +
+                        "Padachar privacy policy\n\n" +
+                            "Padachar has no internet permission. It reads step and distance history from " +
                             "Health Connect only when you tap Import, and stores it in the app's private storage " +
                             "on this phone. Nothing is uploaded, shared or sold. Deleting data in the app, or " +
                             "uninstalling it, removes it.",

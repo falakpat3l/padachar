@@ -1,5 +1,8 @@
 package com.falakpatel.stridelocal.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.falakpatel.stridelocal.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -154,7 +157,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { saveLauncher.launch("stridelocal-backup-${LocalDate.now()}.csv") }) { Text("Save backup") }
+                        Button(onClick = { saveLauncher.launch("padachar-backup-${LocalDate.now()}.csv") }) { Text("Save backup") }
                         OutlinedButton(onClick = { openLauncher.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Restore") }
                     }
                     backupMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -271,7 +274,9 @@ private fun AboutSection() {
     fun open(url: String) = runCatching { uriHandler.openUri(url) }
 
     Section("About") {
-        Text("StrideLocal $version", style = MaterialTheme.typography.titleSmall)
+        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = "Padachar logo", modifier = Modifier.size(72.dp))
+        Text("Padachar $version", style = MaterialTheme.typography.titleSmall)
+        Text("Padachar means walking on foot.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             "A private step tracker. Everything stays on this phone: no account, no ads, no internet.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

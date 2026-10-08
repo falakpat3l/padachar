@@ -9,9 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.falakpatel.stridelocal.R
 
 // Colours from falakpatel.com (dark mode), on a pitch black background.
 private val Text = Color(0xFFE6E6E6)
@@ -26,35 +29,45 @@ val AccentPresets = listOf(
     WEBSITE_BLUE, 0xFFFF453A, 0xFFFF9F0A, 0xFF30D158, 0xFF00C2A8, 0xFFBF5AF2, 0xFFE6E6E6,
 ).map { Color(it) }
 
-/** Second ring colour: the accent rotated 40 degrees around the colour wheel. */
+/** Second ring colour: the accent rotated 40 degrees around the colour wheel (third ring: twice). */
 fun Color.companion(): Color {
     val hsv = FloatArray(3)
     android.graphics.Color.colorToHSV(toArgb(), hsv)
     return Color.hsv((hsv[0] + 40f) % 360f, hsv[1].coerceAtLeast(0.35f), hsv[2])
 }
 
-// Serif text like the website (Times New Roman on a Mac, the phone's serif font here).
+/**
+ * Exo 2, used for all text in the app (SIL Open Font License, see docs/fonts).
+ * Bundled in res/font, so it looks the same on every phone and works offline.
+ */
+val AppFont = FontFamily(
+    Font(R.font.exo2_regular, FontWeight.Normal),
+    Font(R.font.exo2_medium, FontWeight.Medium),
+    Font(R.font.exo2_semibold, FontWeight.SemiBold),
+    Font(R.font.exo2_bold, FontWeight.Bold),
+)
+
 // Headings and short text are centred; bodyLarge (used by text boxes) stays left aligned.
-private fun TextStyle.serif(center: Boolean = true) =
-    copy(fontFamily = FontFamily.Serif, textAlign = if (center) TextAlign.Center else TextAlign.Unspecified)
+private fun TextStyle.appStyle(center: Boolean = true) =
+    copy(fontFamily = AppFont, textAlign = if (center) TextAlign.Center else TextAlign.Unspecified)
 
 private val Base = Typography()
 private val SerifType = Typography(
-    displayLarge = Base.displayLarge.serif(),
-    displayMedium = Base.displayMedium.serif(),
-    displaySmall = Base.displaySmall.serif(),
-    headlineLarge = Base.headlineLarge.serif(),
-    headlineMedium = Base.headlineMedium.serif(),
-    headlineSmall = Base.headlineSmall.serif(),
-    titleLarge = Base.titleLarge.serif(),
-    titleMedium = Base.titleMedium.serif(),
-    titleSmall = Base.titleSmall.serif(),
-    bodyLarge = Base.bodyLarge.serif(center = false),
-    bodyMedium = Base.bodyMedium.serif(),
-    bodySmall = Base.bodySmall.serif(),
-    labelLarge = Base.labelLarge.serif(center = false),
-    labelMedium = Base.labelMedium.serif(center = false),
-    labelSmall = Base.labelSmall.serif(center = false),
+    displayLarge = Base.displayLarge.appStyle(),
+    displayMedium = Base.displayMedium.appStyle(),
+    displaySmall = Base.displaySmall.appStyle(),
+    headlineLarge = Base.headlineLarge.appStyle(),
+    headlineMedium = Base.headlineMedium.appStyle(),
+    headlineSmall = Base.headlineSmall.appStyle(),
+    titleLarge = Base.titleLarge.appStyle(),
+    titleMedium = Base.titleMedium.appStyle(),
+    titleSmall = Base.titleSmall.appStyle(),
+    bodyLarge = Base.bodyLarge.appStyle(center = false),
+    bodyMedium = Base.bodyMedium.appStyle(),
+    bodySmall = Base.bodySmall.appStyle(),
+    labelLarge = Base.labelLarge.appStyle(center = false),
+    labelMedium = Base.labelMedium.appStyle(center = false),
+    labelSmall = Base.labelSmall.appStyle(center = false),
 )
 
 // Small, square-ish corners like the website's buttons.

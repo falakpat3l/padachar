@@ -28,6 +28,8 @@ data class UserProfile(
     val isConfigured: Boolean = false,
     /** Accent colour (ARGB) chosen in Data & settings. */
     val accentArgb: Int = DEFAULT_ACCENT,
+    /** Daily food goal in kcal for the eaten ring. 0 = none: compare with kcal used (BMR + active). */
+    val foodGoalKcal: Int = 0,
 ) {
     val strideM: Double get() = strideOverrideM ?: HealthMetrics.strideMeters(heightCm)
     val bmi: Double get() = HealthMetrics.bmi(weightKg, heightCm)
@@ -52,6 +54,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
         val STRIDE = doublePreferencesKey("stride_override_m")
         val CONFIGURED = booleanPreferencesKey("configured")
         val ACCENT = intPreferencesKey("accent_argb")
+        val FOOD_GOAL = intPreferencesKey("food_goal_kcal")
         val MOVE_REMINDERS = booleanPreferencesKey("move_reminders")
     }
 
@@ -68,6 +71,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
                 strideOverrideM = p[Keys.STRIDE],
                 isConfigured = p[Keys.CONFIGURED] ?: false,
                 accentArgb = p[Keys.ACCENT] ?: UserProfile.DEFAULT_ACCENT,
+                foodGoalKcal = p[Keys.FOOD_GOAL] ?: 0,
             )
         }
 
@@ -79,6 +83,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             p[Keys.SEX] = profile.sex.name
             p[Keys.GOAL] = profile.dailyGoal
             if (profile.strideOverrideM != null) p[Keys.STRIDE] = profile.strideOverrideM else p.remove(Keys.STRIDE)
+            p[Keys.FOOD_GOAL] = profile.foodGoalKcal
             p[Keys.CONFIGURED] = true
         }
     }

@@ -1,0 +1,8 @@
+<!-- "Eaten" symbol: a plain white Pac-Man eating a dot.
+     To change it, edit the pathData below (24 x 24 grid) or replace this file with any
+     white vector of the same name. The app tints it, so the fill colour here does not matter. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M10,12L16.96,7.12A8.5,8.5 0 1,0 16.96,16.88Z M8.8,6.3a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z M21,10.4a1.6,1.6 0 1,1 0,3.2a1.6,1.6 0 1,1 0,-3.2Z" />
+</vector>

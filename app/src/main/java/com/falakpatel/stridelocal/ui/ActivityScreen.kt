@@ -1,5 +1,10 @@
 package com.falakpatel.stridelocal.ui
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,8 +60,8 @@ fun ActivityScreen(state: MainUiState) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                PaceCard("Walking", walk, t.walkMin, t.walkSteps, Modifier.weight(1f))
-                PaceCard("Running", run, t.runMin, t.runSteps, Modifier.weight(1f))
+                PaceCard(WalkIcon, "Walking", walk, t.walkMin, t.walkSteps, Modifier.weight(1f))
+                PaceCard(RunIcon, "Running", run, t.runMin, t.runSteps, Modifier.weight(1f))
             }
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -67,7 +72,7 @@ fun ActivityScreen(state: MainUiState) {
             }
             WeekSplit(state.week, walk, run)
             Text(
-                "Run = $RUN_STEPS_PER_MIN+ steps a minute. Walk = 40+.",
+                "Running = $RUN_STEPS_PER_MIN+ steps a minute. Walking = 40+.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -75,15 +80,11 @@ fun ActivityScreen(state: MainUiState) {
 }
 
 @Composable
-private fun PaceCard(title: String, color: Color, minutes: Int, steps: Long, modifier: Modifier) {
+private fun PaceCard(icon: ImageVector, label: String, color: Color, minutes: Int, steps: Long, modifier: Modifier) {
     OutlinedCard(modifier) {
         Column(Modifier.padding(16.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).background(color, CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.titleSmall)
-            }
-            Spacer(Modifier.height(8.dp))
+            Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.height(4.dp))
             Text("$minutes min", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = color)
             Text(String.format(Locale.getDefault(), "%,d steps", steps), style = MaterialTheme.typography.bodySmall)
         }
@@ -98,6 +99,10 @@ private fun Big(value: String, label: String) {
     }
 }
 
+/** Walking and running symbols, like Google Fit. */
+private val WalkIcon = Icons.AutoMirrored.Filled.DirectionsWalk
+private val RunIcon = Icons.AutoMirrored.Filled.DirectionsRun
+
 /** Last 7 days as stacked bars: walking steps at the bottom, running steps on top. */
 @Composable
 private fun WeekSplit(week: List<DailySteps>, walk: Color, run: Color) {
@@ -109,11 +114,20 @@ private fun WeekSplit(week: List<DailySteps>, walk: Color, run: Color) {
             StepBarChart(
                 days = week,
                 parts = { listOf(BarPart(it.walkSteps, walk), BarPart(it.runSteps.coerceAtMost(it.steps), run)) },
-                details = { d ->
-                    val day = LocalDate.ofEpochDay(d.epochDay).dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-                    String.format(Locale.getDefault(), "%s: %,d walking, %,d running", day, d.walkSteps, d.runSteps.coerceAtMost(d.steps))
+                header = { d ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(WalkIcon, contentDescription = "Walking", tint = walk, modifier = Modifier.size(22.dp))
+                        Text(String.format(Locale.getDefault(), " %,d", d.walkSteps), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(20.dp))
+                        Icon(RunIcon, contentDescription = "Running", tint = run, modifier = Modifier.size(22.dp))
+                        Text(String.format(Locale.getDefault(), " %,d", d.runSteps.coerceAtMost(d.steps)), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        LocalDate.ofEpochDay(d.epochDay).dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 },
-                caption = "Steps per day, walking (bottom) and running (top). Tap a bar for details.",
+                caption = "Steps per day: walking at the bottom, running on top.",
             )
         }
     }

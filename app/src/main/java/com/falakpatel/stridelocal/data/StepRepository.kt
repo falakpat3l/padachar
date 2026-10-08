@@ -42,6 +42,13 @@ class StepRepository(private val dao: StepDao) {
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeFoodToday(): Flow<List<FoodEntry>> = todayTicker().flatMapLatest { dao.observeFood(it) }
 
+    /** Every day from [fromDay] to [toDay] (epoch days, both included), empty days filled in as zero. */
+    fun observeRange(fromDay: Long, toDay: Long): Flow<List<DailySteps>> =
+        dao.observeBetween(fromDay, toDay).map { rows ->
+            val byDay = rows.associateBy { it.epochDay }
+            (fromDay..toDay).map { byDay[it] ?: DailySteps(it) }
+        }
+
     /** Last [days] days including today, with empty days filled in as zero. */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeHistory(days: Int): Flow<List<DailySteps>> = todayTicker().flatMapLatest { today ->

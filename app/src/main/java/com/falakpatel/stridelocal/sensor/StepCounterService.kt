@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.updateAll
 import com.falakpatel.stridelocal.R
 import com.falakpatel.stridelocal.strideApp
+import com.falakpatel.stridelocal.widget.RingsWidget
 import com.falakpatel.stridelocal.widget.StepWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -151,7 +152,7 @@ class StepCounterService : Service(), SensorEventListener {
             (accel.fifoMaxEventCount.toLong() * ACCEL_PERIOD_US * 8 / 10).coerceAtMost(30_000_000L).toInt()
         } else {
             wakeLock = (getSystemService(POWER_SERVICE) as PowerManager)
-                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "StrideLocal:accelSteps").also { it.acquire() }
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Padachar:accelSteps").also { it.acquire() }
             0
         }
         sensorManager.registerListener(this, accel, ACCEL_PERIOD_US, latencyUs, Handler(thread.looper))
@@ -200,6 +201,7 @@ class StepCounterService : Service(), SensorEventListener {
             if (final || newDay || now - lastWidgetMs >= WIDGET_MS) {
                 lastWidgetMs = now
                 runCatching { StepWidget().updateAll(app) }
+                runCatching { RingsWidget().updateAll(app) }
             }
         }
     }

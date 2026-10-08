@@ -1,6 +1,8 @@
-# StrideLocal
+<p align="center"><img src="docs/logo.png" width="120" alt="Padachar logo"></p>
 
-An offline step and food tracker for Android. No internet permission, no ads, no account. Your data stays on your phone.
+# Padachar
+
+*Padachar* means walking on foot. An offline step and food tracker for Android (formerly StrideLocal). No internet permission, no ads, no account. Your data stays on your phone.
 
 | Home | Activity | Food | Settings |
 |:---:|:---:|:---:|:---:|
@@ -12,8 +14,9 @@ An offline step and food tracker for Android. No internet permission, no ads, no
 
 - Steps, distance and active calories from the phone's step sensor
 - Walking vs running minutes
-- Food log with common Indian dishes, eaten vs burned
-- Home screen widget (1x1 to 2x2)
+- Week, month and year charts with daily averages
+- Food log with common Indian dishes, eaten vs burned, optional daily food goal
+- Two home screen widgets: steps (1x1 to 2x2) and rings
 - Optional move reminder, 7 am to 9 pm
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour
@@ -21,7 +24,7 @@ An offline step and food tracker for Android. No internet permission, no ads, no
 ## Install
 
 1. Open [Releases](../../releases) on your phone.
-2. Download the latest `StrideLocal-v...apk` and install it.
+2. Download the latest `Padachar-v...apk` and install it.
 3. Set your profile and allow Physical activity.
 
 If steps stop in the background, set the app's battery usage to Unrestricted.

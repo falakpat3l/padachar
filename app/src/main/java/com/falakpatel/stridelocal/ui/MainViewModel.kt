@@ -21,6 +21,7 @@ data class MainUiState(
     val profile: UserProfile = UserProfile(),
     val today: DailySteps = DailySteps(0),
     val week: List<DailySteps> = emptyList(),
+    val eatenKcal: Double = 0.0,   // food logged today
 )
 
 class MainViewModel(
@@ -29,8 +30,10 @@ class MainViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<MainUiState> =
-        combine(prefs.profile, repository.observeToday(), repository.observeHistory(7)) { p, t, w ->
-            MainUiState(loaded = true, profile = p, today = t, week = w)
+        combine(
+            prefs.profile, repository.observeToday(), repository.observeHistory(7), repository.observeFoodToday(),
+        ) { p, t, w, food ->
+            MainUiState(loaded = true, profile = p, today = t, week = w, eatenKcal = food.sumOf { it.kcal })
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainUiState())
 
     fun saveProfile(profile: UserProfile) {

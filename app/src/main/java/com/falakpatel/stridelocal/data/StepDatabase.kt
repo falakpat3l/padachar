@@ -66,6 +66,9 @@ abstract class StepDao {
     @Query("SELECT * FROM daily_steps WHERE epochDay >= :fromDay ORDER BY epochDay")
     abstract fun observeFrom(fromDay: Long): Flow<List<DailySteps>>
 
+    @Query("SELECT * FROM daily_steps WHERE epochDay BETWEEN :fromDay AND :toDay ORDER BY epochDay")
+    abstract fun observeBetween(fromDay: Long, toDay: Long): Flow<List<DailySteps>>
+
     @Query("SELECT * FROM daily_steps ORDER BY epochDay DESC")
     abstract fun observeAll(): Flow<List<DailySteps>>
 
