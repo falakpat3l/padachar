@@ -85,7 +85,7 @@ dependencies {
 
 /**
  * Privacy guard: fails the build if any library sneaks a network permission
- * into the merged manifest. Runs before every assemble task.
+ * into the merged manifest. Runs before every assemble and bundle task.
  */
 abstract class VerifyNoNetworkPermission : DefaultTask() {
     @get:InputFile
@@ -117,6 +117,6 @@ androidComponents {
             manifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
             report.set(layout.buildDirectory.file("reports/no-network-$variantName.txt"))
         }
-        tasks.matching { it.name == "assemble$cap" }.configureEach { dependsOn(verify) }
+        tasks.matching { it.name == "assemble$cap" || it.name == "bundle$cap" }.configureEach { dependsOn(verify) }
     }
 }
