@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.1-alpha
+- Targets Android 16 (API level 36), as Google Play now requires. No changes to how the app works.
+
 ## 0.7.0-alpha
 - New app ID, `com.falakpat3l.padachar`, ready for Google Play. Android treats this as a new app: it installs next to the old one instead of over it. Save a backup in the old app first, then restore it in the new one.
 
