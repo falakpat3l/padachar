@@ -1,4 +1,4 @@
-name: Build pre-release APK
+name: Build pre-release APK and AAB
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests and signed release APK
+      - name: Unit tests, signed release APK and AAB
         shell: bash
         env:
           KS_B64: ${{ secrets.STRIDE_KEYSTORE_B64 }}
@@ -34,7 +34,7 @@ jobs:
           fi
           # Tag comes from versionName, so new versions need no edits here
           echo "TAG=v$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_ENV"
-          ./gradlew --no-daemon testDebugUnitTest assembleRelease 2>&1 | tee build.log
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease bundleRelease 2>&1 | tee build.log
           exit ${PIPESTATUS[0]}
 
       - name: Show compile errors as annotations
@@ -51,11 +51,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           APK="Padachar-${TAG}.apk"
+          AAB="Padachar-${TAG}.aab"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
-          ls -l "$APK"
+          cp app/build/outputs/bundle/release/app-release.aab "$AAB"
+          ls -l "$APK" "$AAB"
           NOTES="Pre-release for testing. Offline only: no internet permission. See CHANGELOG.md."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
+            gh release upload "$TAG" "$APK" "$AAB" --clobber
           else
-            gh release create "$TAG" "$APK" --prerelease --title "padachar ${TAG}" --notes "$NOTES" --target "$GITHUB_SHA"
+            gh release create "$TAG" "$APK" "$AAB" --prerelease --title "padachar ${TAG}" --notes "$NOTES" --target "$GITHUB_SHA"
           fi
