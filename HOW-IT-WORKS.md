@@ -1,6 +1,6 @@
 # How it works
 
-Padachar was called StrideLocal before 0.6.0; the code package still uses that name (`com.falakpatel.stridelocal`) so updates install over the old app.
+Padachar was called StrideLocal before 0.6.0. The app ID on phones and Google Play is `com.falakpat3l.padachar`. The Kotlin code still lives in the old package folder (`com.falakpatel.stridelocal`); that name is internal only and users never see it.
 
 Code: `app/src/main/java/com/falakpatel/stridelocal/`
 

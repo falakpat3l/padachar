@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- New app ID, `com.falakpat3l.padachar`, ready for Google Play. Android treats this as a new app: it installs next to the old one instead of over it. Save a backup in the old app first, then restore it in the new one.
+
 ## 0.6.2-alpha
 - Swipe left or right to move between Home, Activity, Food and Settings (Home is the first page, Settings the last). The bottom bar still works too
 - Swiping across a chart still moves the day marker, not the page

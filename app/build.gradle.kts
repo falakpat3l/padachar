@@ -12,7 +12,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.falakpatel.stridelocal"
+        applicationId = "com.falakpat3l.padachar"
         minSdk = 26
         targetSdk = 35
         versionCode = 10

@@ -50,12 +50,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK="StrideLocal-${TAG}.apk"
+          APK="Padachar-${TAG}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
           ls -l "$APK"
           NOTES="Pre-release for testing. Offline only: no internet permission. See CHANGELOG.md."
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
-            gh release create "$TAG" "$APK" --prerelease --title "StrideLocal ${TAG}" --notes "$NOTES" --target "$GITHUB_SHA"
+            gh release create "$TAG" "$APK" --prerelease --title "padachar ${TAG}" --notes "$NOTES" --target "$GITHUB_SHA"
           fi
