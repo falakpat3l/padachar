@@ -1,6 +1,6 @@
 # padachar privacy policy
 
-Last updated: 10 October 2026
+Last updated: 21 October 2026
 
 padachar (formerly StrideLocal) is an offline step counter and food log for Android, made by Falak Patel.
 
@@ -34,7 +34,7 @@ When you make a backup, padachar saves a file to a place you choose. That file i
 
 ## Deleting your data
 
-To delete everything, clear the app's data in your phone's settings or uninstall the app. Backup files you saved are yours to delete. Data inside Health Connect is managed in the Health Connect app.
+In Settings you can delete single days or your oldest days. To delete everything, clear the app's data in your phone's settings or uninstall the app. Backup files you saved are yours to delete. Data inside Health Connect is managed in the Health Connect app.
 
 ## Children
 

@@ -54,11 +54,13 @@ class WidgetSettingsActivity : ComponentActivity() {
             ?: AppWidgetManager.INVALID_APPWIDGET_ID
         // Say OK straight away, so backing out still keeps the widget (showing steps).
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
-        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+        // An unknown widget id (the widget was just removed, for example) throws: close instead of crashing.
+        val glanceId = if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) null
+        else runCatching { GlanceAppWidgetManager(this).getGlanceIdBy(widgetId) }.getOrNull()
+        if (glanceId == null) {
             finish()
             return
         }
-        val glanceId = GlanceAppWidgetManager(this).getGlanceIdBy(widgetId)
 
         setContent {
             val profile by strideApp.userPreferences.profile.collectAsState(null)

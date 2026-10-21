@@ -37,10 +37,10 @@ The phone has a step chip that keeps a running total since it was switched on. T
 
 ## Screens
 
-`MainActivity.kt` (tabs), `ui/MainScreen.kt` (Home: rings, W/M/Y chart, monthly averages), `ui/ActivityScreen.kt`, `ui/FoodScreen.kt`, `ui/DataScreen.kt` (Settings), `ui/UserMetricsScreen.kt` (Profile), `ui/Theme.kt` (colours, font, shapes).
+`MainActivity.kt` (tabs), `ui/MainScreen.kt` (Home: goal lines, W/M/Y chart, monthly averages), `ui/ActivityScreen.kt`, `ui/FoodScreen.kt`, `ui/DataScreen.kt` (Settings), `ui/UserMetricsScreen.kt` (Profile), `ui/Theme.kt` (colours, font, shapes).
 
 - `ui/Charts.kt`: the bar chart used everywhere (pill bars, marker, axes, average line).
-- `health/DayRings.kt`: how full each ring is (steps, kcal burned, kcal eaten).
+- `health/DayRings.kt`: how full each goal line on Home (and the widget's bar) is: steps, distance, kcal burned, kcal eaten.
 - `res/font/`: Exo 2. To change the font, replace these files and `AppFont` in `ui/Theme.kt`.
 - `res/drawable/ic_eat.xml`, `ic_burn.xml`: the white eaten and burned symbols. Edit the path or swap the file to change them.
 

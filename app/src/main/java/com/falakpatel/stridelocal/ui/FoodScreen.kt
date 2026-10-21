@@ -123,6 +123,15 @@ fun FoodScreen(state: MainUiState) {
                     TextButton(onClick = { custom = true }) { Text("+ Custom") }
                 }
             }
+            if (dishes.isEmpty()) {
+                item {
+                    Text(
+                        "No match for \"${query.trim()}\". Tap + Custom to add it.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    )
+                }
+            }
             items(dishes, key = { it.name }) { d ->
                 Column(Modifier.fillMaxWidth().clickable { picked = d }.padding(vertical = 6.dp)) {
                     Text(d.name)

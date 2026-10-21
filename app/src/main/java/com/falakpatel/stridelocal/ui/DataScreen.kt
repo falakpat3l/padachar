@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -54,6 +54,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
@@ -108,7 +111,9 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
         scope.launch { app.userPreferences.setMoveReminders(on) }
         if (on) MoveReminder.scheduleNext(app) else MoveReminder.cancel(app)
     }
+    var reminderMsg by remember { mutableStateOf<String?>(null) }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        reminderMsg = if (ok) null else "Notifications are off for padachar. Turn them on in the phone's settings to get reminders."
         if (ok) setReminders(true)
     }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
@@ -128,7 +133,13 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             item {
                 Section("Data") {
                     val since = days.lastOrNull()?.let { " since ${dayLabel(it.epochDay)}" } ?: ""
-                    Text("${days.size} days$since.")
+                    Text(
+                        when (days.size) {
+                            0 -> "No days saved yet."
+                            1 -> "1 day$since."
+                            else -> "${days.size} days$since."
+                        },
+                    )
                     Text(
                         "On this phone only. Uninstalling deletes it, so keep a backup.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -148,6 +159,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                             else setReminders(on)
                         })
                     }
+                    reminderMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
@@ -167,11 +179,14 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                 Section("Colour") {
                     // One short row of swatches. Tap one to use it across the app.
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AccentPresets.forEach { c ->
+                        AccentPresets.forEachIndexed { i, c ->
                             Box(
                                 Modifier.size(28.dp).background(c, CircleShape)
                                     .then(if (c == accent) Modifier.border(2.dp, Color.White, CircleShape) else Modifier)
-                                    .clickable { scope.launch { app.userPreferences.saveAccent(c.toArgb()) } },
+                                    .selectable(selected = c == accent, role = Role.RadioButton) {
+                                        scope.launch { app.userPreferences.saveAccent(c.toArgb()) }
+                                    }
+                                    .semantics { contentDescription = AccentNames.getOrElse(i) { "Colour ${i + 1}" } },
                             )
                         }
                     }
@@ -281,7 +296,7 @@ private fun AboutSection() {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             listOf(
                 Triple(R.drawable.ic_web, "Website", "https://falakpatel.com"),
-                Triple(R.drawable.ic_github, "Source code", "https://github.com/falakpat3l/stride-local"),
+                Triple(R.drawable.ic_github, "Source code", "https://github.com/falakpat3l/padachar"),
                 Triple(R.drawable.ic_scholar, "Google Scholar", "https://scholar.google.com/citations?user=s6-Bs10AAAAJ"),
                 Triple(R.drawable.ic_linkedin, "LinkedIn", "https://www.linkedin.com/in/falak-pat3l"),
                 Triple(R.drawable.ic_x, "X", "https://x.com/falakpat3l"),

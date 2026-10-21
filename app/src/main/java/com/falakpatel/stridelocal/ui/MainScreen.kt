@@ -7,12 +7,17 @@ import com.falakpatel.stridelocal.R
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.falakpatel.stridelocal.strideApp
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
@@ -129,6 +134,12 @@ private fun PermissionGate() {
     LaunchedEffect(Unit) {
         if (activityGranted) StepCounterService.start(context) else if (needed.isNotEmpty()) launcher.launch(needed)
     }
+    // Back from "Open settings": if the permission was granted there, hide this card and start counting.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        val now = StepCounterService.hasActivityPermission(context)
+        if (now && !activityGranted) StepCounterService.start(context)
+        activityGranted = now
+    }
     if (activityGranted) return
 
     OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
@@ -187,7 +198,8 @@ private fun GoalLine(@DrawableRes symbol: Int, color: Color, fraction: Float, la
                 if (shown > 0f) Box(Modifier.fillMaxWidth(shown).fillMaxHeight().background(color, CircleShape))
             }
             Spacer(Modifier.width(10.dp))
-            Icon(painterResource(symbol), contentDescription = label, tint = white, modifier = Modifier.size(26.dp))
+            // No description: the same label is written just below, so TalkBack would read it twice.
+            Icon(painterResource(symbol), contentDescription = null, tint = white, modifier = Modifier.size(26.dp))
         }
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -204,7 +216,7 @@ private fun Stat(value: String, label: String, @DrawableRes symbol: Int? = null)
 }
 
 /** Chart ranges, like Google Fit's W / M / Y tabs. (No "D": the app does not keep hourly data.) */
-private enum class Range(val tab: String) { WEEK("W"), MONTH("M"), YEAR("Y") }
+private enum class Range(val tab: String, val label: String) { WEEK("W", "Week"), MONTH("M", "Month"), YEAR("Y", "Year") }
 
 /** First and last day shown for a range, [page] steps back from today (0 = the current one). */
 private fun rangeDates(range: Range, page: Int, today: LocalDate): Pair<LocalDate, LocalDate> = when (range) {
@@ -265,7 +277,8 @@ private fun HistoryCard(goal: Int) {
                         Modifier
                             .size(width = 52.dp, height = 32.dp)
                             .background(if (on) bar else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                            .clickable { range = r; page = 0 },
+                            .selectable(selected = on, role = Role.Tab) { range = r; page = 0 }
+                            .semantics { contentDescription = r.label },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(r.tab, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = if (on) Color.Black else MaterialTheme.colorScheme.onSurface)

@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.falakpatel.stridelocal.MainActivity
 import com.falakpatel.stridelocal.R
 import com.falakpatel.stridelocal.sensor.DayClock
+import com.falakpatel.stridelocal.sensor.StepSync
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -52,6 +53,9 @@ object MoveReminder {
     suspend fun maybeNotify(ctx: Context) {
         val now = System.currentTimeMillis()
         if (!ReminderSchedule.inWindow(now) || !hasPermission(ctx)) return
+        // While the phone sleeps the step chip keeps counting but nothing is saved, so pull the
+        // latest count first. Otherwise a long walk with the screen off would still get a nudge.
+        StepSync.syncNow(ctx)
         val today = DayClock.epochDay(now)
         val steps = ctx.strideApp.stepRepository.today().steps
         val sp = ctx.getSharedPreferences("move_reminder", Context.MODE_PRIVATE)

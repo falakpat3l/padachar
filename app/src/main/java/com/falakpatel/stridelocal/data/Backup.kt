@@ -43,7 +43,8 @@ object Backup {
         val input = ctx.contentResolver.openInputStream(uri) ?: error("Could not open the file")
         val lines = input.bufferedReader().use { it.readLines() }
         // Backups made before the rename say "StrideLocal"; both are accepted.
-        val first = lines.firstOrNull().orEmpty()
+        // Some editors add an invisible byte order mark at the start when they save the file.
+        val first = lines.firstOrNull().orEmpty().removePrefix("\uFEFF")
         require(first.startsWith("# Padachar backup") || first.startsWith("# StrideLocal backup")) { "This is not a Padachar backup file" }
         var changed = 0
         for (line in lines.drop(1)) {

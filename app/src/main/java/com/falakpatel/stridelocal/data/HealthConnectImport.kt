@@ -60,13 +60,12 @@ object HealthConnectImport {
                 val day = b.startTime.toLocalDate().toEpochDay()
                 val old = app.stepRepository.getDay(day)
                 if (old != null && old.steps >= steps) return@mapNotNull null
-                DailySteps(
-                    epochDay = day,
+                // Start from the existing row so walking and running minutes already counted here are kept.
+                (old ?: DailySteps(day, goal = p.dailyGoal)).copy(
                     steps = steps,
                     distanceKm = b.result[DistanceRecord.DISTANCE_TOTAL]?.inKilometers
                         ?: HealthMetrics.distanceKm(steps, p.strideM),
                     activeKcal = HealthMetrics.kcalForSteps(steps, 100.0, p.strideM, p.weightKg),
-                    goal = old?.goal ?: p.dailyGoal,
                 )
             }
             app.stepRepository.upsertDays(rows)

@@ -40,8 +40,9 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * Why a foreground service at all: since Android 9, apps in the background stop receiving
  * sensor events, so a background job could not read the counter. A foreground service is the
- * only reliable way. The app does not ask for notification permission, so on Android 13+ the
- * required notification is hidden (it only appears in the system's "active apps" list).
+ * only reliable way. Notification permission is only asked for by the optional move reminder, so
+ * on Android 13+ the required notification is normally hidden (it only appears in the system's
+ * "active apps" list). With reminders on, it shows as a silent, low priority notification.
  *
  * Battery: with a hardware step counter the chip does the counting and the CPU sleeps. We only
  * remember the latest value and hand it to [StepEngine] every 5 s while new steps arrive.

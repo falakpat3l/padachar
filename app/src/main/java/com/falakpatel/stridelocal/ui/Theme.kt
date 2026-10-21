@@ -29,6 +29,9 @@ val AccentPresets = listOf(
     WEBSITE_BLUE, 0xFFFF453A, 0xFFFF9F0A, 0xFF30D158, 0xFF00C2A8, 0xFFBF5AF2, 0xFFE6E6E6,
 ).map { Color(it) }
 
+/** Names read out by TalkBack for [AccentPresets], in the same order. */
+val AccentNames = listOf("Blue", "Red", "Orange", "Green", "Teal", "Purple", "White")
+
 /** Second ring colour: the accent rotated 40 degrees around the colour wheel (third ring: twice). */
 fun Color.companion(): Color {
     val hsv = FloatArray(3)

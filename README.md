@@ -34,6 +34,6 @@ If steps stop in the background, set the app's battery usage to Unrestricted.
 
 Open in Android Studio and press Run, or `./gradlew assembleDebug`.
 
-Kotlin, Jetpack Compose, Glance, Room, DataStore. Min Android 8, targets Android 15.
+Kotlin, Jetpack Compose, Glance, Room, DataStore. Min Android 8, targets Android 16.
 
 How the code is laid out: [HOW-IT-WORKS.md](HOW-IT-WORKS.md)

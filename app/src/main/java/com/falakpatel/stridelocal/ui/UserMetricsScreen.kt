@@ -102,7 +102,7 @@ fun UserMetricsScreen(initial: UserProfile, onSave: (UserProfile) -> Unit, onBac
                 val bmi = HealthMetrics.bmi(w, h)
                 OutlinedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(String.format(Locale.getDefault(), "BMI %.1f (%s)", bmi, HealthMetrics.bmiCategory(bmi).label))
+                        Text(String.format(Locale.getDefault(), "BMI %.1f (%s)", bmi, HealthMetrics.bmiCategory(bmi).label))
                         Text(String.format(Locale.getDefault(), "BMR %.0f kcal/day", HealthMetrics.bmrMifflinStJeor(w, h, a, sex)))
                         Text(String.format(Locale.getDefault(), "Stride %.2f m", s ?: HealthMetrics.strideMeters(h)))
                     }

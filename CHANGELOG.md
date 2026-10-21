@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.2-alpha
+- Move reminder: reads the latest step count before deciding, so a walk with the screen off no longer gets a nudge
+- Home: allowing Physical activity in the phone's settings now hides the warning card and starts counting when you come back
+- Google Fit import keeps the walking and running minutes already counted for that day
+- Restore accepts backup files that an editor saved with a byte order mark
+- Widget settings no longer crashes when the widget was already removed
+- Food search says so when nothing matches, and points to + Custom
+- Settings: "1 day" instead of "1 days", a hint when notifications are blocked, and the source code link points to the padachar repo
+- Better TalkBack labels for the colour swatches and the W / M / Y tabs
+
 ## 0.7.1-alpha
 - Targets Android 16 (API level 36), as Google Play now requires. No changes to how the app works.
 
