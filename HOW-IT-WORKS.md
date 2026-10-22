@@ -15,6 +15,7 @@ The phone has a step chip that keeps a running total since it was switched on. T
 | `sensor/StepMath.kt` | Restarts, midnight, walk vs run (145+ steps a minute = run) |
 | `sensor/AccelStepDetector.kt` | Backup counter for phones without a step chip |
 | `sensor/BootReceiver.kt` | Starts tracking again after a restart |
+| `sensor/DayRollover.kt` | One alarm just after midnight (and on clock or time zone changes) that moves the widget and Home to the new day |
 
 ## Numbers
 
@@ -30,7 +31,7 @@ The phone has a step chip that keeps a running total since it was switched on. T
 | File | What it does |
 |---|---|
 | `data/StepDatabase.kt` | On-phone database: days, food, step chip state |
-| `data/UserPreferences.kt` | Profile, colour, food goal, reminder setting |
+| `data/UserPreferences.kt` | Profile, colour, food goal, reminder and goal notification settings, the day the goal was last celebrated or notified |
 | `data/Backup.kt` | Save and restore a CSV file |
 | `data/HealthConnectImport.kt` | Import old days from Google Fit |
 | `data/IndianDishes.kt` | Built-in food list |
@@ -41,6 +42,7 @@ The phone has a step chip that keeps a running total since it was switched on. T
 
 - `ui/Charts.kt`: the bar chart used everywhere (pill bars, marker, axes, average line).
 - `health/DayRings.kt`: how full each goal line on Home (and the widget's bar) is: steps, distance, kcal burned, kcal eaten.
+- `health/GoalProgress.kt`: goal reached or not, percent past 100%, "+1,240 over your goal" and the chart's "Goal reached on 3 days".
 - `res/font/`: Exo 2. To change the font, replace these files and `AppFont` in `ui/Theme.kt`.
 - `res/drawable/ic_eat.xml`, `ic_burn.xml`: the white eaten and burned symbols. Edit the path or swap the file to change them.
 
@@ -50,9 +52,10 @@ The phone has a step chip that keeps a running total since it was switched on. T
 - `widget/WidgetSettingsActivity.kt`: the "Widget settings" screen (long-press the widget) where you pick what it shows. Each widget keeps its own choice.
 - `reminder/ReminderSchedule.kt`: picks a random time 75 to 105 minutes ahead, 7 am to 9 pm, skipped if you walked.
 - `reminder/MoveReminder.kt`: sets the alarm and shows a silent notification.
+- `reminder/GoalNotice.kt`: "Daily goal reached", at most once a day, checked when the counting service saves new steps.
 
 ## Checks
 
-- `app/src/test/`: tests for the maths, food list, backup and reminder.
+- `app/src/test/`: tests for the maths, goal progress, food list, backup and reminder.
 - `app/build.gradle.kts`: the build fails if anything adds internet permission.
 - `.github/workflows/prerelease.yml`: builds and publishes the APK.

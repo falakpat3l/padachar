@@ -44,12 +44,14 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.unit.ColorProvider
 import com.falakpatel.stridelocal.MainActivity
 import com.falakpatel.stridelocal.R
 import com.falakpatel.stridelocal.data.DailySteps
 import com.falakpatel.stridelocal.data.UserProfile
 import com.falakpatel.stridelocal.health.DayRings
+import com.falakpatel.stridelocal.health.GoalProgress
 import com.falakpatel.stridelocal.sensor.StepCounterService
 import com.falakpatel.stridelocal.sensor.StepSync
 import com.falakpatel.stridelocal.strideApp
@@ -84,6 +86,7 @@ suspend fun refreshWidgets(context: Context) {
 /**
  * Home screen widget (Jetpack Glance), pure black with your accent colour, text in Exo 2.
  * Shows steps, distance or calorie deficit, picked per widget in its settings.
+ * Once the goal is reached, a check mark shows next to the percent (and "Goal reached" on 2x2).
  * Resizes from 1x1 up: 1x1 shows the number, 2x1 a slim bar, 1x2 a stacked column, 2x2 the full card.
  * Reads straight from the local Room database; the service pushes updates at most every 30 s.
  */
@@ -115,6 +118,7 @@ class StepWidget : GlanceAppWidget() {
         val unit: String,      // under the number in 1x2
         val tag: String,       // small accent word: percent, or deficit / surplus
         val progress: Float,   // the bar, 0 to 1
+        val done: Boolean,     // goal reached: a check mark before the tag, and "Goal reached" as the 2x2 heading
         val left: String,      // 2x2 bottom row
         val right: String,
         val foot: String,      // 2x1 bottom line
@@ -124,20 +128,27 @@ class StepWidget : GlanceAppWidget() {
         val g = DayRings.of(day, p, eatenKcal)
         val steps = fmtInt(day.steps.toDouble())
         val km = fmtKm(day.distanceKm)
+        // Percent keeps counting past 100% (the bar itself stops at full).
+        val stepPct = "${GoalProgress.percent(day.steps, p.dailyGoal)}%"
+        val kmPct = GoalProgress.percentOf(day.distanceKm, g.distanceGoalKm)
         return when (metric) {
-            WidgetMetric.STEPS -> Shown(
-                title = "Steps today", number = steps, headline = steps, unit = "steps",
-                tag = percent(g.steps), progress = g.steps,
-                left = "${percent(g.steps)} of ${fmtInt(p.dailyGoal.toDouble())}", right = "$km km",
-                foot = "$km km",
-            )
-            WidgetMetric.DISTANCE -> Shown(
-                title = "Distance today", number = km, headline = "$km km", unit = "km",
-                tag = percent(g.distance), progress = g.distance,
-                left = "${percent(g.distance)} of ${String.format(Locale.getDefault(), "%.1f", g.distanceGoalKm)} km",
-                right = "$steps steps",
-                foot = "$steps steps",
-            )
+            WidgetMetric.STEPS -> GoalProgress.reached(day.steps, p.dailyGoal).let { done ->
+                Shown(
+                    title = if (done) "Goal reached" else "Steps today", number = steps, headline = steps, unit = "steps",
+                    tag = stepPct, progress = g.steps, done = done,
+                    left = "$stepPct of ${fmtInt(p.dailyGoal.toDouble())}", right = "$km km",
+                    foot = "$km km",
+                )
+            }
+            WidgetMetric.DISTANCE -> (kmPct >= 100).let { done ->
+                Shown(
+                    title = if (done) "Goal reached" else "Distance today", number = km, headline = "$km km", unit = "km",
+                    tag = "$kmPct%", progress = g.distance, done = done,
+                    left = "$kmPct% of ${String.format(Locale.getDefault(), "%.1f", g.distanceGoalKm)} km",
+                    right = "$steps steps",
+                    foot = "$steps steps",
+                )
+            }
             WidgetMetric.DEFICIT -> {
                 // Same sum as the Food tab: kcal used today (BMR + active) minus kcal eaten.
                 val burned = p.bmr + day.activeKcal
@@ -148,14 +159,13 @@ class StepWidget : GlanceAppWidget() {
                     number = kcal, headline = "$kcal kcal", unit = "kcal",
                     tag = if (deficit >= 0) "deficit" else "surplus",
                     progress = g.eaten, // the bar: kcal eaten of today's food target
+                    done = false,
                     left = "${fmtInt(eatenKcal)} eaten", right = "${fmtInt(burned)} burned",
                     foot = "${fmtInt(eatenKcal)} of ${fmtInt(g.eatTargetKcal)} eaten",
                 )
             }
         }
     }
-
-    private fun percent(f: Float) = "${(f * 100).toInt()}%"
 
     @Composable
     private fun WidgetContent(s: Shown, accent: Color) {
@@ -174,7 +184,9 @@ class StepWidget : GlanceAppWidget() {
             when {
                 wide && tall -> { // 2x2 and bigger: full card with refresh button
                     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Box(GlanceModifier.defaultWeight()) { ExoText(s.title, 12f, GREY) }
+                        Box(GlanceModifier.defaultWeight()) {
+                            if (s.done) Checked(s.title, 12f, accentArgb, accent) else ExoText(s.title, 12f, GREY)
+                        }
                         Image(
                             provider = ImageProvider(R.drawable.ic_refresh), contentDescription = "Refresh",
                             colorFilter = ColorFilter.tint(ColorProvider(Color(WHITE))),
@@ -191,7 +203,7 @@ class StepWidget : GlanceAppWidget() {
                 wide -> { // 2x1: one slim row
                     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(GlanceModifier.defaultWeight()) { ExoText(s.headline, 20f, WHITE, bold = true) }
-                        ExoText(s.tag, 13f, accentArgb, bold = true)
+                        Checked(s.tag, 13f, accentArgb, accent, bold = true, check = s.done)
                     }
                     Bar(s.progress, accent)
                     ExoText(s.foot, 12f, GREY)
@@ -200,11 +212,11 @@ class StepWidget : GlanceAppWidget() {
                     ExoText(s.number, 17f, WHITE, bold = true)
                     ExoText(s.unit, 12f, GREY)
                     Bar(s.progress, accent)
-                    ExoText(s.tag, 13f, accentArgb, bold = true)
+                    Checked(s.tag, 13f, accentArgb, accent, bold = true, check = s.done)
                 }
                 else -> { // 1x1
                     ExoText(s.number, 15f, WHITE, bold = true)
-                    ExoText(s.tag, 12f, accentArgb)
+                    Checked(s.tag, 12f, accentArgb, accent, check = s.done)
                 }
             }
         }
@@ -218,6 +230,24 @@ class StepWidget : GlanceAppWidget() {
             color = ColorProvider(accent), backgroundColor = Track,
         )
         Spacer(GlanceModifier.height(4.dp))
+    }
+
+    /** [text] with a small check mark in the accent colour before it when [check] is true. */
+    @Composable
+    private fun Checked(text: String, sizeSp: Float, argb: Int, accent: Color, bold: Boolean = false, check: Boolean = true) {
+        if (!check) {
+            ExoText(text, sizeSp, argb, bold)
+            return
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                provider = ImageProvider(R.drawable.ic_check), contentDescription = "Goal reached",
+                colorFilter = ColorFilter.tint(ColorProvider(accent)),
+                modifier = GlanceModifier.size(sizeSp.dp),
+            )
+            Spacer(GlanceModifier.width(3.dp))
+            ExoText(text, sizeSp, argb, bold)
+        }
     }
 
     /**

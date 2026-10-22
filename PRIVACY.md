@@ -25,7 +25,7 @@ padachar has no internet permission, so it cannot send data off your phone. It h
 
 - **Physical activity:** to count steps with your phone's step sensor.
 - **Run in the background, start after restart and keep awake:** so step counting keeps working through the day.
-- **Notifications:** for the optional reminder to move. It is off by default.
+- **Notifications:** for the optional reminder to move (off by default) and the once-a-day "Daily goal reached" message (can be switched off). padachar only asks for this permission when you switch one of them on in Settings.
 - **Health Connect (read steps, distance and step history):** used only when you tap "Import", to bring in your past Google Fit step history. padachar never writes to Health Connect. Imported data stays on your phone.
 
 ## Backups

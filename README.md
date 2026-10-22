@@ -14,10 +14,11 @@
 
 - Steps, distance and active calories from the phone's step sensor
 - Walking vs running minutes
-- Week, month and year charts with daily averages
+- A check mark and "Goal reached" when you hit your daily step goal, on Home and the widget
+- Week, month and year charts with daily averages; days that reached the goal stand out
 - Food log with common Indian dishes, eaten vs burned, optional daily food goal
 - Home screen widget (1x1 to 2x2): shows steps, distance or calorie deficit, your pick
-- Optional move reminder, 7 am to 9 pm
+- Optional move reminder, 7 am to 9 pm, and a once-a-day "Daily goal reached" notification
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour
 - Swipe between the four tabs

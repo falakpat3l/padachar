@@ -94,8 +94,12 @@ class MoveReminderReceiver : BroadcastReceiver() {
         app.appScope.launch {
             try {
                 if (app.userPreferences.moveReminders.first()) {
-                    MoveReminder.maybeNotify(app)
-                    MoveReminder.scheduleNext(app)
+                    // Plan the next one even if this check fails, or reminders would stop until toggled.
+                    try {
+                        runCatching { MoveReminder.maybeNotify(app) }
+                    } finally {
+                        runCatching { MoveReminder.scheduleNext(app) }
+                    }
                 }
             } finally {
                 pending.finish()

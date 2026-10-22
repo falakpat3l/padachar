@@ -3,18 +3,21 @@ package com.falakpatel.stridelocal.data
 import android.content.Context
 import android.net.Uri
 import com.falakpatel.stridelocal.health.Sex
+import com.falakpatel.stridelocal.sensor.StepEngine
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 
 /**
  * Backup to a plain CSV file the user picks (Downloads, a USB stick, anywhere). No internet,
  * no permission needed: Android's file picker grants access to that one file only.
  *
  * Lines: P = profile, D = one day of steps, F = one food item.
- * Restore never deletes anything: days keep the higher step count, food is skipped if the
- * same item at the same time is already there, so restoring twice is safe.
+ * Restore never deletes anything: each day keeps the higher of each total (so steps counted
+ * today are never lowered), food is skipped if the same item at the same time is already
+ * there, so restoring twice is safe.
  */
 object Backup {
     private const val HEADER = "# Padachar backup v1"
@@ -24,7 +27,10 @@ object Backup {
         val p = app.userPreferences.profile.first()
         val days = app.stepRepository.allDays()
         val food = app.stepRepository.allFood()
-        val out = ctx.contentResolver.openOutputStream(uri) ?: error("Could not open the file")
+        // "wt" empties the file first, so an older, longer backup leaves no old lines at the end.
+        // A few storage apps do not support it; plain "w" is the fallback.
+        val out = runCatching { ctx.contentResolver.openOutputStream(uri, "wt") }.getOrNull()
+            ?: ctx.contentResolver.openOutputStream(uri) ?: error("Could not open the file")
         out.bufferedWriter().use { w ->
             w.write(HEADER + "\n")
             w.write("P,${p.weightKg},${p.heightCm},${p.ageYears},${p.sex.name},${p.dailyGoal},${p.strideOverrideM ?: ""},${p.accentArgb},${p.foodGoalKcal}\n")
@@ -47,7 +53,7 @@ object Backup {
         val first = lines.firstOrNull().orEmpty().removePrefix("\uFEFF")
         require(first.startsWith("# Padachar backup") || first.startsWith("# StrideLocal backup")) { "This is not a Padachar backup file" }
         var changed = 0
-        for (line in lines.drop(1)) {
+        for (line in Csv.records(lines.drop(1))) {
             val f = Csv.split(line)
             runCatching {
                 when (f[0]) {
@@ -67,11 +73,13 @@ object Backup {
                             runMin = f.getOrNull(7)?.toIntOrNull() ?: 0,
                             runSteps = f.getOrNull(8)?.toLongOrNull() ?: 0,
                         )
-                        val old = repo.getDay(row.epochDay)
-                        if (old == null || row.steps > old.steps) {
-                            repo.upsertDays(listOf(row))
-                            changed++
+                        // Under the step lock, so steps counted live during the restore are kept.
+                        val raised = StepEngine.withWriteLock {
+                            val merged = mergeRestoredDay(repo.getDay(row.epochDay), row)
+                            if (merged != null) repo.upsertDays(listOf(merged))
+                            merged != null
                         }
+                        if (raised) changed++
                     }
                     "F" -> {
                         val e = FoodEntry(0, f[1].toLong(), f[2].toLong(), f[3], f[4].toDouble(), f[5].toDouble(), f[6].toDouble(), f[7].toDouble(), f[8].toDouble())
@@ -85,4 +93,21 @@ object Backup {
         }
         changed
     }
+}
+
+/**
+ * A day from a backup merged into the same day on this phone: each total keeps the higher value
+ * and the phone's goal is kept. Returns null when nothing would change. Pure Kotlin, unit tested.
+ */
+internal fun mergeRestoredDay(old: DailySteps?, restored: DailySteps): DailySteps? {
+    if (old == null) return restored
+    val merged = old.copy(
+        steps = max(old.steps, restored.steps),
+        distanceKm = max(old.distanceKm, restored.distanceKm),
+        activeKcal = max(old.activeKcal, restored.activeKcal),
+        walkMin = max(old.walkMin, restored.walkMin),
+        runMin = max(old.runMin, restored.runMin),
+        runSteps = max(old.runSteps, restored.runSteps),
+    )
+    return merged.takeIf { it != old }
 }

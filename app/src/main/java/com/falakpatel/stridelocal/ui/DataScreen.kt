@@ -16,8 +16,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -61,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
 import com.falakpatel.stridelocal.data.Backup
@@ -112,9 +118,21 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
         if (on) MoveReminder.scheduleNext(app) else MoveReminder.cancel(app)
     }
     var reminderMsg by remember { mutableStateOf<String?>(null) }
+    var notifAllowed by remember { mutableStateOf(MoveReminder.hasPermission(app)) }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        notifAllowed = ok
         reminderMsg = if (ok) null else "Notifications are off for padachar. Turn them on in the phone's settings to get reminders."
         if (ok) setReminders(true)
+    }
+    // "Daily goal reached" notice: on by default, but it can only show with notification permission.
+    val goalNotice by remember { app.userPreferences.goalNotice }.collectAsStateWithLifecycle(true)
+    var goalMsg by remember { mutableStateOf<String?>(null) }
+    // Back from the phone's settings: notifications may have been turned on or off there.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { notifAllowed = MoveReminder.hasPermission(app) }
+    val goalNotifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        notifAllowed = ok
+        goalMsg = if (ok) null else "Notifications are off for padachar. Turn them on in the phone's settings to get this."
+        if (ok) scope.launch { app.userPreferences.setGoalNotice(true) }
     }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
         if (HealthConnectImport.STEPS in it) runImport() else message = "Not allowed."
@@ -147,7 +165,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                 }
             }
             item {
-                Section("Reminder") {
+                Section("Notifications") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "A quiet nudge about every 1.5 h, 7 am to 9 pm.",
@@ -160,6 +178,21 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                         })
                     }
                     reminderMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Tell me once a day when I reach my step goal.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(checked = goalNotice && notifAllowed, onCheckedChange = { on ->
+                            if (on && !MoveReminder.hasPermission(app)) goalNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            else {
+                                notifAllowed = MoveReminder.hasPermission(app)
+                                scope.launch { app.userPreferences.setGoalNotice(on) }
+                            }
+                        })
+                    }
+                    goalMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
@@ -178,16 +211,23 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             item {
                 Section("Colour") {
                     // One short row of swatches. Tap one to use it across the app.
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Each swatch sits in a 48 dp tall slot that shares the row width, so the whole
+                    // slot is the touch target while the dot itself stays small.
+                    Row(Modifier.widthIn(max = 392.dp).fillMaxWidth()) {
                         AccentPresets.forEachIndexed { i, c ->
                             Box(
-                                Modifier.size(28.dp).background(c, CircleShape)
-                                    .then(if (c == accent) Modifier.border(2.dp, Color.White, CircleShape) else Modifier)
+                                Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(12.dp))
                                     .selectable(selected = c == accent, role = Role.RadioButton) {
                                         scope.launch { app.userPreferences.saveAccent(c.toArgb()) }
                                     }
                                     .semantics { contentDescription = AccentNames.getOrElse(i) { "Colour ${i + 1}" } },
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    Modifier.size(30.dp).background(c, CircleShape)
+                                        .then(if (c == accent) Modifier.border(2.dp, Color.White, CircleShape) else Modifier),
+                                )
+                            }
                         }
                     }
                 }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.falakpatel.stridelocal.health.HealthMetrics
@@ -56,6 +57,9 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
         val ACCENT = intPreferencesKey("accent_argb")
         val FOOD_GOAL = intPreferencesKey("food_goal_kcal")
         val MOVE_REMINDERS = booleanPreferencesKey("move_reminders")
+        val GOAL_NOTICE = booleanPreferencesKey("goal_notice")
+        val GOAL_CELEBRATED_DAY = longPreferencesKey("goal_celebrated_day")
+        val GOAL_NOTIFIED_DAY = longPreferencesKey("goal_notified_day")
     }
 
     val profile: Flow<UserProfile> = dataStore.data
@@ -94,6 +98,37 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setMoveReminders(on: Boolean) {
         dataStore.edit { it[Keys.MOVE_REMINDERS] = on }
+    }
+
+    /** "Daily goal reached" notification. On by default; Android 13+ still needs the permission. */
+    val goalNotice: Flow<Boolean> = dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+        .map { it[Keys.GOAL_NOTICE] ?: true }
+
+    suspend fun setGoalNotice(on: Boolean) {
+        dataStore.edit { it[Keys.GOAL_NOTICE] = on }
+    }
+
+    /** Epoch day the Home screen last played its small "goal reached" animation (-1 = never). */
+    val goalCelebratedDay: Flow<Long> = dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+        .map { it[Keys.GOAL_CELEBRATED_DAY] ?: -1L }
+
+    suspend fun setGoalCelebrated(epochDay: Long) {
+        dataStore.edit { it[Keys.GOAL_CELEBRATED_DAY] = epochDay }
+    }
+
+    /**
+     * Marks [epochDay] as notified. Returns true only for the first call that day, so two
+     * step saves arriving together can never show the notification twice.
+     */
+    suspend fun markGoalNotified(epochDay: Long): Boolean {
+        var first = false
+        dataStore.edit { p ->
+            first = p[Keys.GOAL_NOTIFIED_DAY] != epochDay
+            p[Keys.GOAL_NOTIFIED_DAY] = epochDay
+        }
+        return first
     }
 
     suspend fun saveAccent(argb: Int) {

@@ -84,6 +84,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- Switches the widget to the new day after midnight (its own alarm), and when the
+             clock or time zone is changed. These two broadcasts come from the system. -->
+        <receiver
+            android:name=".sensor.DayRolloverReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".reminder.MoveReminderReceiver"
             android:exported="false" />

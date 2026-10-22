@@ -8,6 +8,7 @@ import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.falakpatel.stridelocal.health.HealthMetrics
+import com.falakpatel.stridelocal.sensor.StepEngine
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -55,20 +56,22 @@ object HealthConnectImport {
             } catch (e: SecurityException) {
                 break // history permission not granted: older data is not readable
             }
-            val rows = buckets.mapNotNull { b ->
-                val steps = b.result[StepsRecord.COUNT_TOTAL]?.takeIf { it > 0 } ?: return@mapNotNull null
-                val day = b.startTime.toLocalDate().toEpochDay()
-                val old = app.stepRepository.getDay(day)
-                if (old != null && old.steps >= steps) return@mapNotNull null
-                // Start from the existing row so walking and running minutes already counted here are kept.
-                (old ?: DailySteps(day, goal = p.dailyGoal)).copy(
-                    steps = steps,
-                    distanceKm = b.result[DistanceRecord.DISTANCE_TOTAL]?.inKilometers
-                        ?: HealthMetrics.distanceKm(steps, p.strideM),
-                    activeKcal = HealthMetrics.kcalForSteps(steps, 100.0, p.strideM, p.weightKg),
-                )
+            // Under the step lock, so a late batch of steps for yesterday is not overwritten.
+            val rows = StepEngine.withWriteLock {
+                buckets.mapNotNull { b ->
+                    val steps = b.result[StepsRecord.COUNT_TOTAL]?.takeIf { it > 0 } ?: return@mapNotNull null
+                    val day = b.startTime.toLocalDate().toEpochDay()
+                    val old = app.stepRepository.getDay(day)
+                    if (old != null && old.steps >= steps) return@mapNotNull null
+                    // Start from the existing row so walking and running minutes already counted here are kept.
+                    (old ?: DailySteps(day, goal = p.dailyGoal)).copy(
+                        steps = steps,
+                        distanceKm = b.result[DistanceRecord.DISTANCE_TOTAL]?.inKilometers
+                            ?: HealthMetrics.distanceKm(steps, p.strideM),
+                        activeKcal = HealthMetrics.kcalForSteps(steps, 100.0, p.strideM, p.weightKg),
+                    )
+                }.also { app.stepRepository.upsertDays(it) }
             }
-            app.stepRepository.upsertDays(rows)
             changed += rows.size
             end = start
         }

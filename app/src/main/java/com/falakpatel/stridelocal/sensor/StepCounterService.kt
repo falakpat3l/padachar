@@ -24,6 +24,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.updateAll
 import com.falakpatel.stridelocal.R
+import com.falakpatel.stridelocal.reminder.GoalNotice
 import com.falakpatel.stridelocal.strideApp
 import com.falakpatel.stridelocal.widget.StepWidget
 import kotlinx.coroutines.CoroutineScope
@@ -40,9 +41,10 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * Why a foreground service at all: since Android 9, apps in the background stop receiving
  * sensor events, so a background job could not read the counter. A foreground service is the
- * only reliable way. Notification permission is only asked for by the optional move reminder, so
- * on Android 13+ the required notification is normally hidden (it only appears in the system's
- * "active apps" list). With reminders on, it shows as a silent, low priority notification.
+ * only reliable way. Notification permission is only asked for when you switch on the move
+ * reminder or the daily goal notification in Settings, so on Android 13+ the required notification
+ * is normally hidden (it only appears in the system's "active apps" list). With the permission
+ * given, it shows as a silent, low priority notification.
  *
  * Battery: with a hardware step counter the chip does the counting and the CPU sleeps. We only
  * remember the latest value and hand it to [StepEngine] every 5 s while new steps arrive.
@@ -122,7 +124,10 @@ class StepCounterService : Service(), SensorEventListener {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
         START_STICKY
     } catch (e: Exception) { // permission revoked: stop cleanly
-        stopSelf()
+        // stopSelf(startId), not stopSelf(): if another start request is already queued (app
+        // opened, widget tap), a plain stop would end the service before that request can call
+        // startForeground, and Android then crashes the app for breaking that promise.
+        stopSelf(startId)
         START_NOT_STICKY
     }
 
@@ -197,6 +202,8 @@ class StepCounterService : Service(), SensorEventListener {
             if (hasCounter) StepEngine.onCounter(app, counter, wall)
             if (accel > 0) StepEngine.addSteps(app, accel, System.currentTimeMillis())
             StepEngine.addPaceMinutes(app, minutes)
+            // Once a day, when these steps cross the goal (needs notification permission).
+            if (hasCounter || accel > 0) runCatching { GoalNotice.maybeNotify(app) }
             val now = SystemClock.elapsedRealtime()
             if (final || newDay || now - lastWidgetMs >= WIDGET_MS) {
                 lastWidgetMs = now

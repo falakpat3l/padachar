@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.4-alpha
+- Home shows when you reach your step goal: the steps line ends in a check mark, "Goal reached" appears under the count with how far over you are (for example "+1,240 over your goal"), and the percent keeps counting past 100%
+- The first time you reach the goal each day, the check mark pops in with a short, calm animation. It plays once a day and is skipped when the phone's "Remove animations" setting is on
+- Widget: a check mark next to the percent once the goal is reached, and "Goal reached" as the 2x2 heading. The percent now goes past 100% too
+- New "Daily goal reached" notification, once a day. On by default, switch it off in Settings, Notifications. Like the move reminder, it needs notification permission, which is only asked for when you switch one of them on
+- Home chart: bars that reached the goal are in your accent colour, the others grey, and the caption says on how many days you reached it
+
+## 0.7.3-alpha
+- Widget and Home switch to the new day within minutes of midnight, and again right away when you change the clock or time zone
+- Restore and Google Fit import no longer overwrite steps being counted at the same moment. Restore keeps the higher of each total for a day, so today's count is never lowered
+- Saving a backup over an old file now clears it first, so no old lines are left at the end
+- A food name with a line break no longer breaks the backup. Older backups with such a name now restore it too
+- Move reminders keep going even if one check fails, instead of stopping until you switch them off and on
+- Colour swatches in Settings are easier to tap (48 dp tall touch area)
+- Fixed a possible crash when step counting could not start and the app tried to start it again at the same time
+
 ## 0.7.2-alpha
 - Move reminder: reads the latest step count before deciding, so a walk with the screen off no longer gets a nudge
 - Home: allowing Physical activity in the phone's settings now hides the warning card and starts counting when you come back

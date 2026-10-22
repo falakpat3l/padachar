@@ -4,10 +4,12 @@ import com.falakpatel.stridelocal.sensor.DayClock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 /** Local-only storage (steps and food). Rows are kept forever until the user deletes them. */
 class StepRepository(private val dao: StepDao) {
@@ -26,11 +28,23 @@ class StepRepository(private val dao: StepDao) {
     suspend fun hasFood(timeMs: Long, name: String): Boolean = dao.countFood(timeMs, name) > 0
     fun observeAll(): Flow<List<DailySteps>> = dao.observeAll()
 
-    /** Emits today's epoch day now and again right after each local midnight. */
-    private fun todayTicker(): Flow<Long> = flow {
-        while (true) {
-            emit(DayClock.today())
-            delay(DayClock.millisUntilNextMidnight() + 1_000)
+    /** Bumped by [checkDay] so every open screen looks at the date again. */
+    private val dayCheck = MutableStateFlow(0L)
+
+    /**
+     * Ask open screens to look at the date again now. Called after midnight and clock or time
+     * zone changes, because the timer below pauses while the phone sleeps and can end late.
+     */
+    fun checkDay() = dayCheck.update { it + 1 }
+
+    /** Emits today's epoch day now, again right after each local midnight, and on [checkDay]. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun todayTicker(): Flow<Long> = dayCheck.flatMapLatest {
+        flow {
+            while (true) {
+                emit(DayClock.today())
+                delay(DayClock.millisUntilNextMidnight() + 1_000)
+            }
         }
     }.distinctUntilChanged()
 

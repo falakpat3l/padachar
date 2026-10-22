@@ -42,6 +42,12 @@ object StepEngine {
         delta
     }
 
+    /**
+     * Runs [block] while no live steps are being written. Restore and import use it so steps
+     * counted during their read-then-write are never overwritten. [block] must not call StepEngine.
+     */
+    suspend fun <T> withWriteLock(block: suspend () -> T): T = mutex.withLock { block() }
+
     /** Accelerometer fallback path: steps already detected. */
     suspend fun addSteps(ctx: Context, steps: Long, wallMs: Long) = mutex.withLock {
         val repo = ctx.strideApp.stepRepository
@@ -120,6 +126,7 @@ object StepSync {
         if (StepCounterService.hasActivityPermission(ctx)) {
             readCounterOnce(ctx)?.let { StepEngine.onCounter(ctx, it, System.currentTimeMillis()) }
         }
+        ctx.strideApp.stepRepository.checkDay() // open screens switch to the new day after midnight
         runCatching { StepWidget().updateAll(ctx) }
     }
 }

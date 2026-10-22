@@ -47,4 +47,18 @@ class StepDeltaTest {
         // gap over 2 hours: all on today
         assertEquals(listOf(d to 600L), splitAcrossMidnight(600, last - 3 * 3_600_000L, now, zone))
     }
+
+    @Test fun nextMidnightIsLocal() {
+        val zone = ZoneId.of("Asia/Kolkata")
+        val midnight = java.time.Instant.parse("2026-10-04T18:30:00Z").toEpochMilli() // 00:00 IST, 5 Oct
+        assertEquals(midnight, DayClock.nextMidnight(midnight - 60_000, zone)) // from 23:59
+        assertEquals(midnight + 86_400_000L, DayClock.nextMidnight(midnight, zone)) // at midnight: the next one
+    }
+
+    @Test fun nextMidnightOnShortDay() {
+        // Clocks go forward on 29 March 2026 in London, so that day is 23 hours long.
+        val zone = ZoneId.of("Europe/London")
+        val start = java.time.Instant.parse("2026-03-29T00:00:00Z").toEpochMilli() // 00:00 GMT
+        assertEquals(start + 23 * 3_600_000L, DayClock.nextMidnight(start + 3_600_000L, zone))
+    }
 }

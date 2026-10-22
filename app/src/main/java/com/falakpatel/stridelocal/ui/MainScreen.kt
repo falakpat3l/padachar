@@ -29,7 +29,16 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import android.content.Context
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.material.icons.filled.Check
+import com.falakpatel.stridelocal.health.GoalProgress
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -163,6 +172,9 @@ private fun PermissionGate() {
  * Today's goals as four straight progress lines: steps, distance, kcal burned, kcal eaten.
  * Each line has a small symbol at the start (where you begin) and a bigger one at the end
  * (the goal). The lines slide to their length when the screen opens.
+ * Once the step goal is reached, the steps line ends in a check mark, "Goal reached" shows
+ * under the count with how far over you are, and the percent keeps counting past 100%.
+ * The first time each day, the check and that line come in with a short pop.
  */
 @Composable
 private fun TodayCard(today: DailySteps, profile: UserProfile, eatenKcal: Double) {
@@ -172,12 +184,42 @@ private fun TodayCard(today: DailySteps, profile: UserProfile, eatenKcal: Double
     val c3 = c2.companion()
     val c4 = c3.companion()
     val loc = Locale.getDefault()
+    val goal = profile.dailyGoal
+    val percent = GoalProgress.percent(today.steps, goal)
+
+    // The day the pop last played. Null until it is read, so nothing shows or plays early.
+    val prefs = LocalContext.current.strideApp.userPreferences
+    val celebratedDay by remember { prefs.goalCelebratedDay }.collectAsStateWithLifecycle<Long?>(null)
+    val done = GoalProgress.reached(today.steps, goal) && celebratedDay != null
+    val firstTimeToday = done && celebratedDay != today.epochDay
+    LaunchedEffect(firstTimeToday, today.epochDay) {
+        if (firstTimeToday) prefs.setGoalCelebrated(today.epochDay) // only once a day
+    }
+
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(String.format(loc, "%,d", today.steps), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = c1)
         Text("steps today", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (done) {
+            val t = rememberPop(play = firstTimeToday)
+            val shown = ((t - 0.2f) / 0.6f).coerceIn(0f, 1f) // follows just after the check
+            Column(
+                Modifier
+                    .padding(top = 10.dp)
+                    .graphicsLayer { alpha = shown; translationY = (1f - shown) * 6.dp.toPx() }
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("Goal reached", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = c1)
+                Text(GoalProgress.overText(today.steps, goal, loc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            GoalLine(R.drawable.ic_stat_steps, c1, g.steps, String.format(loc, "%,d of %,d steps", today.steps, profile.dailyGoal))
+            GoalLine(
+                R.drawable.ic_stat_steps, c1, g.steps,
+                String.format(loc, "%,d of %,d steps  ·  %d%%", today.steps, goal, percent),
+                done = done, play = firstTimeToday,
+            )
             GoalLine(R.drawable.ic_distance, c2, g.distance, String.format(loc, "%.2f of %.2f km", today.distanceKm, g.distanceGoalKm))
             GoalLine(R.drawable.ic_burn, c3, g.burned, String.format(loc, "%.0f of %.0f kcal burned", today.activeKcal, g.burnGoalKcal))
             GoalLine(R.drawable.ic_eat, c4, g.eaten, String.format(loc, "%.0f of %.0f kcal eaten", eatenKcal, g.eatTargetKcal))
@@ -185,9 +227,56 @@ private fun TodayCard(today: DailySteps, profile: UserProfile, eatenKcal: Double
     }
 }
 
-/** One goal: small symbol, the progress line, bigger symbol, and the numbers underneath. */
+/** True when "Remove animations" (or animator duration scale off) is set in the phone's settings. */
+private fun animationsOff(context: Context): Boolean =
+    runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
+        .getOrDefault(false)
+
+/**
+ * 0 to 1 over a short moment when [play] is true the first time this is shown, otherwise
+ * (and with animations removed) simply 1. Call it only where the thing it animates appears.
+ */
 @Composable
-private fun GoalLine(@DrawableRes symbol: Int, color: Color, fraction: Float, label: String) {
+private fun rememberPop(play: Boolean): Float {
+    val context = LocalContext.current
+    val pop = remember { Animatable(if (play && !animationsOff(context)) 0f else 1f) }
+    LaunchedEffect(Unit) {
+        if (pop.value < 1f) pop.animateTo(1f, tween(durationMillis = 900, easing = LinearEasing))
+    }
+    return pop.value
+}
+
+/** The check mark at the end of a finished goal line. On the first time, it pops in with a fading ring. */
+@Composable
+private fun GoalCheck(color: Color, play: Boolean) {
+    val t = rememberPop(play)
+    // Grows to a little over full size in the first 60%, then settles back.
+    val scale = if (t < 0.6f) 0.4f + 0.75f * FastOutSlowInEasing.transform(t / 0.6f) else 1.15f - 0.15f * ((t - 0.6f) / 0.4f)
+    Box(
+        Modifier.size(26.dp).drawBehind {
+            if (t < 1f) drawCircle(color.copy(alpha = 0.5f * (1f - t)), radius = size.minDimension / 2f * (1f + 0.9f * t))
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(26.dp)
+                .graphicsLayer { scaleX = scale; scaleY = scale; alpha = (t / 0.3f).coerceAtMost(1f) }
+                .background(color, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            // No description: "Goal reached" is written under the step count.
+            Icon(Icons.Filled.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/**
+ * One goal: small symbol, the progress line, bigger symbol, and the numbers underneath.
+ * When [done], a check mark replaces the bigger symbol ([play]: pop it in, first time today).
+ */
+@Composable
+private fun GoalLine(@DrawableRes symbol: Int, color: Color, fraction: Float, label: String, done: Boolean = false, play: Boolean = false) {
     val shown by animateFloatAsState(fraction, tween(durationMillis = 800, easing = FastOutSlowInEasing), label = "goal")
     val white = MaterialTheme.colorScheme.onSurface
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -199,7 +288,7 @@ private fun GoalLine(@DrawableRes symbol: Int, color: Color, fraction: Float, la
             }
             Spacer(Modifier.width(10.dp))
             // No description: the same label is written just below, so TalkBack would read it twice.
-            Icon(painterResource(symbol), contentDescription = null, tint = white, modifier = Modifier.size(26.dp))
+            if (done) GoalCheck(color, play) else Icon(painterResource(symbol), contentDescription = null, tint = white, modifier = Modifier.size(26.dp))
         }
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -250,6 +339,7 @@ private fun averageSteps(bars: List<DailySteps>): Long? =
 /**
  * Steps history with W / M / Y tabs and arrows to page back in time.
  * Week and month show one bar per day; year shows one bar per month (average steps a day).
+ * Bars in the accent colour reached the step goal; grey bars did not.
  * Under the chart: this month and the two before it, as average steps a day.
  */
 @Composable
@@ -304,7 +394,8 @@ private fun HistoryCard(goal: Int) {
             if (bars.isNotEmpty()) {
                 StepBarChart(
                     days = bars,
-                    parts = { listOf(BarPart(it.steps, bar)) },
+                    // Accent bars reached the goal, grey ones did not (year view: the month's average).
+                    parts = { listOf(BarPart(it.steps, if (GoalProgress.reached(it.steps, goal)) bar else muted)) },
                     header = { d ->
                         val date = LocalDate.ofEpochDay(d.epochDay)
                         Row(verticalAlignment = Alignment.Bottom) {
@@ -319,7 +410,9 @@ private fun HistoryCard(goal: Int) {
                         )
                     },
                     caption = averageSteps(bars)?.let {
-                        String.format(Locale.getDefault(), "Average %,d steps a day. Tap or slide across the bars.", it)
+                        val reached = if (range == Range.YEAR) "" else GoalProgress.daysReachedText(bars.map { d -> d.steps }, goal)
+                        String.format(Locale.getDefault(), "Average %,d steps a day. ", it) +
+                            (if (reached.isEmpty()) "" else "$reached ") + "Tap or slide across the bars."
                     } ?: "No steps in this range yet.",
                     goal = goal,
                     average = averageSteps(bars),

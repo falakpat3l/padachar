@@ -76,6 +76,10 @@ object DayClock {
         val next = now.toLocalDate().plusDays(1).atStartOfDay(zone)
         return java.time.Duration.between(now, next).toMillis()
     }
+
+    /** Wall clock time (ms) of the first local midnight after [nowMs]. Days of 23 or 25 hours are handled. */
+    fun nextMidnight(nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
+        Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
 }
 
 /**
