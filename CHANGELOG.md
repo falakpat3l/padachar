@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.5-alpha
+- Restore stops with a clear message when the picked file is far too big to be a backup (over 16 MB or 250,000 lines), instead of the app running out of memory
+- The restart-after-reboot part of the app can no longer be triggered by other apps, only by Android itself
+- Build: the signing key file on GitHub is only readable by the build and is deleted when the build ends
+
 ## 0.7.4-alpha
 - Home shows when you reach your step goal: the steps line ends in a check mark, "Goal reached" appears under the count with how far over you are (for example "+1,240 over your goal"), and the percent keeps counting past 100%
 - The first time you reach the goal each day, the check mark pops in with a short, calm animation. It plays once a day and is skipped when the phone's "Remove animations" setting is on

@@ -8,6 +8,8 @@ import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.io.InputStream
 import kotlin.math.max
 
 /**
@@ -21,6 +23,11 @@ import kotlin.math.max
  */
 object Backup {
     private const val HEADER = "# Padachar backup v1"
+
+    // The picked file could be anything, so restore stops early on a file far bigger than any
+    // real backup (years of steps and food fit in a few MB), instead of running out of memory.
+    private const val MAX_BYTES = 16L * 1024 * 1024
+    private const val MAX_LINES = 250_000
 
     suspend fun export(ctx: Context, uri: Uri): Int = withContext(Dispatchers.IO) {
         val app = ctx.strideApp
@@ -47,7 +54,8 @@ object Backup {
         val app = ctx.strideApp
         val repo = app.stepRepository
         val input = ctx.contentResolver.openInputStream(uri) ?: error("Could not open the file")
-        val lines = input.bufferedReader().use { it.readLines() }
+        val lines = LimitedInput(input, MAX_BYTES).bufferedReader().useLines { it.take(MAX_LINES + 1).toList() }
+        require(lines.size <= MAX_LINES) { "This file is too big to be a Padachar backup" }
         // Backups made before the rename say "StrideLocal"; both are accepted.
         // Some editors add an invisible byte order mark at the start when they save the file.
         val first = lines.firstOrNull().orEmpty().removePrefix("\uFEFF")
@@ -92,6 +100,32 @@ object Backup {
             } // a damaged line is skipped instead of stopping the whole restore
         }
         changed
+    }
+}
+
+/** Reads at most [max] bytes, then throws, so a huge file cannot fill the memory. */
+private class LimitedInput(private val inner: InputStream, private val max: Long) : InputStream() {
+    private var total = 0L
+
+    override fun read(): Int {
+        val b = inner.read()
+        if (b >= 0) add(1)
+        return b
+    }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int {
+        val n = inner.read(b, off, len)
+        if (n > 0) add(n.toLong())
+        return n
+    }
+
+    override fun close() {
+        inner.close()
+    }
+
+    private fun add(n: Long) {
+        total += n
+        if (total > max) throw IOException("This file is too big to be a Padachar backup")
     }
 }
 

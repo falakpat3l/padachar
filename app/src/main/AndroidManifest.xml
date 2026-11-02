@@ -74,9 +74,11 @@
             android:exported="false"
             android:foregroundServiceType="health" />
 
+        <!-- Not exported: these broadcasts come from the system, which reaches it anyway,
+             and other apps cannot poke it. -->
         <receiver
             android:name=".sensor.BootReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

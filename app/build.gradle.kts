@@ -15,8 +15,8 @@ android {
         applicationId = "com.falakpat3l.padachar"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.7.4-alpha"
+        versionCode = 16
+        versionName = "0.7.5-alpha"
         resourceConfigurations += "en" // drop unused library translations (smaller APK)
     }
 
