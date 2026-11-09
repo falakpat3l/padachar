@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -44,6 +46,7 @@ import com.falakpatel.stridelocal.ui.FoodScreen
 import com.falakpatel.stridelocal.ui.MainScreen
 import com.falakpatel.stridelocal.ui.MainViewModel
 import com.falakpatel.stridelocal.ui.ActivityScreen
+import com.falakpatel.stridelocal.ui.CycleScreen
 import com.falakpatel.stridelocal.ui.StrideTheme
 import com.falakpatel.stridelocal.ui.UserMetricsScreen
 import kotlinx.coroutines.launch
@@ -53,6 +56,7 @@ private enum class Tab(val label: String, val icon: ImageVector?) {
     HOME("Home", Icons.Filled.Home),
     ACTIVITY("Activity", null),
     FOOD("Food", Icons.AutoMirrored.Filled.List),
+    CYCLE("Cycle", Icons.Filled.WaterDrop), // only when Cycle tracking is on in Settings
     SETTINGS("Settings", Icons.Filled.Settings),
 }
 
@@ -66,12 +70,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by viewModel.uiState.collectAsStateWithLifecycle()
             val accent = Color(state.profile.accentArgb)
+            val cycleOn by remember { strideApp.userPreferences.cycleEnabled }.collectAsStateWithLifecycle(false)
             StrideTheme(accent) {
-                // The four tabs sit side by side: swipe left or right, or tap the bottom bar.
+                // The tabs sit side by side: swipe left or right, or tap the bottom bar.
                 // Home is the first page and Settings the last, so swiping stops at both ends.
-                val pager = rememberPagerState(pageCount = { Tab.entries.size })
+                // The Cycle tab is there only when it is switched on in Settings.
+                val tabs = if (cycleOn) Tab.entries else Tab.entries.filter { it != Tab.CYCLE }
+                val pager = rememberPagerState(pageCount = { tabs.size })
                 val scope = rememberCoroutineScope()
-                fun goTo(t: Tab) { scope.launch { pager.animateScrollToPage(t.ordinal) } }
+                fun goTo(t: Tab) { scope.launch { pager.animateScrollToPage(tabs.indexOf(t).coerceAtLeast(0)) } }
                 var editing by rememberSaveable { mutableStateOf(false) }
                 if (!state.loaded) return@StrideTheme
 
@@ -86,13 +93,13 @@ class MainActivity : ComponentActivity() {
                     return@StrideTheme
                 }
 
-                BackHandler(enabled = pager.currentPage != Tab.HOME.ordinal) { goTo(Tab.HOME) }
+                BackHandler(enabled = pager.currentPage != 0) { goTo(Tab.HOME) }
                 Scaffold(
                     bottomBar = {
                         NavigationBar(containerColor = Color.Black) {
-                            Tab.entries.forEach { t ->
+                            tabs.forEachIndexed { i, t ->
                                 NavigationBarItem(
-                                    selected = pager.targetPage == t.ordinal,
+                                    selected = pager.targetPage == i,
                                     onClick = { goTo(t) },
                                     icon = {
                                         if (t.icon != null) Icon(t.icon, contentDescription = t.label)
@@ -111,10 +118,11 @@ class MainActivity : ComponentActivity() {
                 ) { pad ->
                     HorizontalPager(pager, Modifier.padding(bottom = pad.calculateBottomPadding())) { page ->
                         Box(Modifier.fillMaxSize()) {
-                            when (Tab.entries[page]) {
+                            when (tabs.getOrElse(page) { Tab.SETTINGS }) {
                                 Tab.HOME -> MainScreen(state, onEditProfile = { editing = true })
                                 Tab.FOOD -> FoodScreen(state)
                                 Tab.ACTIVITY -> ActivityScreen(state)
+                                Tab.CYCLE -> CycleScreen()
                                 Tab.SETTINGS -> DataScreen(accent)
                             }
                         }
