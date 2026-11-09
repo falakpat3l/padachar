@@ -31,18 +31,19 @@ The phone has a step chip that keeps a running total since it was switched on. T
 | File | What it does |
 |---|---|
 | `data/StepDatabase.kt` | On-phone database: days, food, step chip state |
-| `data/UserPreferences.kt` | Profile, colour, food goal, reminder and goal notification settings, the day the goal was last celebrated or notified |
+| `data/UserPreferences.kt` | Profile, colour, food goal, reminder and goal notification settings, the day the goal was last celebrated or notified, and the cycle log with its settings |
 | `data/Backup.kt` | Save and restore a CSV file |
 | `data/HealthConnectImport.kt` | Import old days from Google Fit |
 | `data/IndianDishes.kt` | Built-in food list |
 
 ## Screens
 
-`MainActivity.kt` (tabs), `ui/MainScreen.kt` (Home: goal lines, W/M/Y chart, monthly averages), `ui/ActivityScreen.kt`, `ui/FoodScreen.kt`, `ui/DataScreen.kt` (Settings), `ui/UserMetricsScreen.kt` (Profile), `ui/Theme.kt` (colours, font, shapes).
+`MainActivity.kt` (tabs), `ui/MainScreen.kt` (Home: goal lines, W/M/Y chart, monthly averages), `ui/ActivityScreen.kt`, `ui/FoodScreen.kt`, `ui/CycleScreen.kt` (Cycle, only when switched on), `ui/DataScreen.kt` (Settings), `ui/UserMetricsScreen.kt` (Profile), `ui/Theme.kt` (colours, font, shapes).
 
 - `ui/Charts.kt`: the bar chart used everywhere (pill bars, marker, axes, average line).
 - `health/DayRings.kt`: how full each goal line on Home (and the widget's bar) is: steps, distance, kcal burned, kcal eaten.
 - `health/GoalProgress.kt`: goal reached or not, percent past 100%, "+1,240 over your goal" and the chart's "Goal reached on 3 days".
+- `health/Cycle.kt`: the cycle log (flow and symptoms per day, saved as one short text) and the estimates: periods from bleeding days, usual cycle and period length from the last six cycles, the next expected period and the reminder day.
 - `res/font/`: Exo 2. To change the font, replace these files and `AppFont` in `ui/Theme.kt`.
 - `res/drawable/ic_eat.xml`, `ic_burn.xml`: the white eaten and burned symbols. Edit the path or swap the file to change them.
 
@@ -53,9 +54,10 @@ The phone has a step chip that keeps a running total since it was switched on. T
 - `reminder/ReminderSchedule.kt`: picks a random time 75 to 105 minutes ahead, 7 am to 9 pm, skipped if you walked.
 - `reminder/MoveReminder.kt`: sets the alarm and shows a silent notification.
 - `reminder/GoalNotice.kt`: "Daily goal reached", at most once a day, checked when the counting service saves new steps.
+- `reminder/CycleReminder.kt`: optional "Period may start tomorrow" at about 9 am, planned again whenever the log changes, after a restart and after midnight. Hidden on the lock screen.
 
 ## Checks
 
-- `app/src/test/`: tests for the maths, goal progress, food list, backup and reminder.
+- `app/src/test/`: tests for the maths, goal progress, food list, backup, reminder and cycle estimates.
 - `app/build.gradle.kts`: the build fails if anything adds internet permission.
 - `.github/workflows/prerelease.yml`: builds and publishes the APK.
