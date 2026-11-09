@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.falakpatel.stridelocal.health.CycleDay
+import com.falakpatel.stridelocal.health.CycleLog
 import com.falakpatel.stridelocal.health.HealthMetrics
 import com.falakpatel.stridelocal.health.Sex
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +62,14 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
         val GOAL_NOTICE = booleanPreferencesKey("goal_notice")
         val GOAL_CELEBRATED_DAY = longPreferencesKey("goal_celebrated_day")
         val GOAL_NOTIFIED_DAY = longPreferencesKey("goal_notified_day")
+        val CYCLE_ON = booleanPreferencesKey("cycle_on")
+        val CYCLE_LOG = stringPreferencesKey("cycle_log")
+        val CYCLE_REMIND = booleanPreferencesKey("cycle_remind")
+        val CYCLE_IN_BACKUP = booleanPreferencesKey("cycle_in_backup")
     }
+
+    private val safeData: Flow<Preferences> = dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
 
     val profile: Flow<UserProfile> = dataStore.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
@@ -133,5 +142,51 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
 
     suspend fun saveAccent(argb: Int) {
         dataStore.edit { it[Keys.ACCENT] = argb }
+    }
+
+    // Cycle tracking. Off by default: the Cycle tab only shows once it is switched on in Settings.
+
+    val cycleEnabled: Flow<Boolean> = safeData.map { it[Keys.CYCLE_ON] ?: false }
+
+    suspend fun setCycleEnabled(on: Boolean) {
+        dataStore.edit { it[Keys.CYCLE_ON] = on }
+    }
+
+    /** Logged days, oldest first. */
+    val cycleDays: Flow<List<CycleDay>> = safeData.map { CycleLog.decode(it[Keys.CYCLE_LOG]) }
+
+    /** Saves [day], replacing that date. An empty day (no flow, no symptoms) removes the date. */
+    suspend fun saveCycleDay(day: CycleDay) {
+        dataStore.edit { p -> p[Keys.CYCLE_LOG] = CycleLog.encode(CycleLog.put(CycleLog.decode(p[Keys.CYCLE_LOG]), day)) }
+    }
+
+    /** Adds the days from a backup that this phone does not have yet. Returns how many were added. */
+    suspend fun addMissingCycleDays(incoming: List<CycleDay>): Int {
+        var added = 0
+        dataStore.edit { p ->
+            val have = CycleLog.decode(p[Keys.CYCLE_LOG])
+            val extra = CycleLog.missing(have, incoming)
+            added = extra.size
+            if (extra.isNotEmpty()) p[Keys.CYCLE_LOG] = CycleLog.encode(have + extra)
+        }
+        return added
+    }
+
+    suspend fun clearCycleLog() {
+        dataStore.edit { it.remove(Keys.CYCLE_LOG) }
+    }
+
+    /** "Period may start tomorrow" notification. Off by default. */
+    val cycleReminder: Flow<Boolean> = safeData.map { it[Keys.CYCLE_REMIND] ?: false }
+
+    suspend fun setCycleReminder(on: Boolean) {
+        dataStore.edit { it[Keys.CYCLE_REMIND] = on }
+    }
+
+    /** Whether backups include the cycle log. On by default, so a backup is complete. */
+    val cycleInBackup: Flow<Boolean> = safeData.map { it[Keys.CYCLE_IN_BACKUP] ?: true }
+
+    suspend fun setCycleInBackup(on: Boolean) {
+        dataStore.edit { it[Keys.CYCLE_IN_BACKUP] = on }
     }
 }

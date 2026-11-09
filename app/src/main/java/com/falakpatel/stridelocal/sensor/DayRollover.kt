@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.falakpatel.stridelocal.reminder.CycleReminder
 import com.falakpatel.stridelocal.reminder.MoveReminder
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.flow.first
@@ -50,6 +51,8 @@ class DayRolloverReceiver : BroadcastReceiver() {
                 // Safety net for move reminders: after midnight the next one is due at 7 to 8 am
                 // anyway, so planning it again here only matters if its alarm was lost.
                 runCatching { if (app.userPreferences.moveReminders.first()) MoveReminder.scheduleNext(app) }
+                // The cycle reminder follows the latest estimate, so plan it again each day.
+                runCatching { CycleReminder.reschedule(app) }
             } finally {
                 DayRollover.schedule(app)
                 pending.finish()

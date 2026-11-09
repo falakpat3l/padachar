@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0-alpha
+- New, optional cycle tracking. Switch it on in Settings, Cycle tracking, and a Cycle tab appears between Food and Settings. It is off by default, so nothing changes for anyone who does not need it
+- Log a day from the calendar: flow (spotting, light, medium or heavy) and how you feel (cramps, headache, back pain, bloating, tender breasts, acne, tired, low mood, mood swings, cravings)
+- Logging the first day of an earlier period can fill in the days after it, up to your usual period length
+- The Cycle tab shows the day of your cycle, when the next period is expected and your usual cycle and period length, worked out from your last six cycles (28 and 5 days until there is enough history). A cycle over 60 or under 15 days, usually a missed log, is left out
+- Expected days are outlined on the calendar, and a list shows your recent periods with each cycle's length
+- Optional reminder at about 9 am the day before the next period is expected. On the lock screen it only says "padachar reminder"
+- Backups include the cycle log (a switch in Settings leaves it out). Restoring only adds days that are not on the phone yet, and turns the Cycle tab on
+- The estimates are only for your information: no fertile days or "safe days", and not for birth control
+- Like everything else in padachar, the cycle log stays on the phone. No internet permission
+
 ## 0.7.5-alpha
 - Restore stops with a clear message when the picked file is far too big to be a backup (over 16 MB or 250,000 lines), instead of the app running out of memory
 - The restart-after-reboot part of the app can no longer be triggered by other apps, only by Android itself

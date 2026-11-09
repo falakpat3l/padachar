@@ -3,6 +3,7 @@ package com.falakpatel.stridelocal.sensor
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.falakpatel.stridelocal.reminder.CycleReminder
 import com.falakpatel.stridelocal.reminder.MoveReminder
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.flow.first
@@ -26,7 +27,8 @@ class BootReceiver : BroadcastReceiver() {
                 val pending = goAsync()
                 app.appScope.launch {
                     try {
-                        if (app.userPreferences.moveReminders.first()) MoveReminder.scheduleNext(app)
+                        runCatching { if (app.userPreferences.moveReminders.first()) MoveReminder.scheduleNext(app) }
+                        runCatching { CycleReminder.reschedule(app) }
                     } finally {
                         pending.finish()
                     }

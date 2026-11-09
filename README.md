@@ -21,7 +21,8 @@
 - Optional move reminder, 7 am to 9 pm, and a once-a-day "Daily goal reached" notification
 - Backup to a file, import from Google Fit (Health Connect)
 - Black theme with your own accent colour
-- Swipe between the four tabs
+- Optional cycle tracking (off by default): log periods and symptoms, see the next period estimated, optional reminder
+- Swipe between the tabs
 
 ## Install
 

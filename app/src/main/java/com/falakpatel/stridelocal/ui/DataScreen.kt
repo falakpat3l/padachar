@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
 import com.falakpatel.stridelocal.data.Backup
+import com.falakpatel.stridelocal.reminder.CycleReminder
 import com.falakpatel.stridelocal.reminder.MoveReminder
 import com.falakpatel.stridelocal.data.HealthConnectImport
 import com.falakpatel.stridelocal.strideApp
@@ -133,6 +134,22 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
         notifAllowed = ok
         goalMsg = if (ok) null else "Notifications are off for padachar. Turn them on in the phone's settings to get this."
         if (ok) scope.launch { app.userPreferences.setGoalNotice(true) }
+    }
+    // Cycle tracking: off by default. When on, a Cycle tab appears between Food and Settings.
+    val cycleOn by remember { app.userPreferences.cycleEnabled }.collectAsStateWithLifecycle(false)
+    val cycleRemind by remember { app.userPreferences.cycleReminder }.collectAsStateWithLifecycle(false)
+    val cycleInBackup by remember { app.userPreferences.cycleInBackup }.collectAsStateWithLifecycle(true)
+    var cycleMsg by remember { mutableStateOf<String?>(null) }
+    fun setCycleRemind(on: Boolean) {
+        app.appScope.launch {
+            app.userPreferences.setCycleReminder(on)
+            if (on) runCatching { CycleReminder.reschedule(app) } else CycleReminder.cancel(app)
+        }
+    }
+    val cycleNotifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        notifAllowed = ok
+        cycleMsg = if (ok) null else "Notifications are off for padachar. Turn them on in the phone's settings to get this."
+        if (ok) setCycleRemind(true)
     }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
         if (HealthConnectImport.STEPS in it) runImport() else message = "Not allowed."
@@ -198,7 +215,7 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
             item {
                 Section("Backup") {
                     Text(
-                        "Steps, food and profile in one file.",
+                        if (cycleOn && cycleInBackup) "Steps, food, profile and cycle log in one file." else "Steps, food and profile in one file.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -206,6 +223,56 @@ fun DataScreen(accent: Color, onBack: (() -> Unit)? = null) {
                         OutlinedButton(onClick = { openLauncher.launch(arrayOf("text/*", "application/octet-stream")) }) { Text("Restore") }
                     }
                     backupMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+            item {
+                Section("Cycle tracking") {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Log periods and see the next one estimated, in a Cycle tab. Stays on this phone.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Switch(checked = cycleOn, onCheckedChange = { on ->
+                            app.appScope.launch {
+                                app.userPreferences.setCycleEnabled(on)
+                                if (on) runCatching { CycleReminder.reschedule(app) } else CycleReminder.cancel(app)
+                            }
+                        })
+                    }
+                    if (cycleOn) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Remind me the day before my next period is expected.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(checked = cycleRemind && notifAllowed, onCheckedChange = { on ->
+                                if (on && !MoveReminder.hasPermission(app)) cycleNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                else {
+                                    notifAllowed = MoveReminder.hasPermission(app)
+                                    setCycleRemind(on)
+                                }
+                            })
+                        }
+                        cycleMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Include the cycle log in backups.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(checked = cycleInBackup, onCheckedChange = { on ->
+                                scope.launch { app.userPreferences.setCycleInBackup(on) }
+                            })
+                        }
+                        OutlinedButton(onClick = {
+                            confirm = Pair("Delete every day in your cycle log?", suspend {
+                                app.userPreferences.clearCycleLog()
+                                CycleReminder.cancel(app)
+                            })
+                        }) { Text("Delete cycle log") }
+                    }
                 }
             }
             item {
