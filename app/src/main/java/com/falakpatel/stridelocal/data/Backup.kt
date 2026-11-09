@@ -2,7 +2,10 @@ package com.falakpatel.stridelocal.data
 
 import android.content.Context
 import android.net.Uri
+import com.falakpatel.stridelocal.health.CycleDay
+import com.falakpatel.stridelocal.health.CycleLog
 import com.falakpatel.stridelocal.health.Sex
+import com.falakpatel.stridelocal.health.Symptom
 import com.falakpatel.stridelocal.sensor.StepEngine
 import com.falakpatel.stridelocal.strideApp
 import kotlinx.coroutines.Dispatchers
@@ -16,10 +19,12 @@ import kotlin.math.max
  * Backup to a plain CSV file the user picks (Downloads, a USB stick, anywhere). No internet,
  * no permission needed: Android's file picker grants access to that one file only.
  *
- * Lines: P = profile, D = one day of steps, F = one food item.
+ * Lines: P = profile, D = one day of steps, F = one food item, C = one day of the cycle log
+ * (left out when "Include the cycle log in backups" is off).
  * Restore never deletes anything: each day keeps the higher of each total (so steps counted
  * today are never lowered), food is skipped if the same item at the same time is already
- * there, so restoring twice is safe.
+ * there, and a cycle day is only added when that date is not logged on the phone yet, so
+ * restoring twice is safe.
  */
 object Backup {
     private const val HEADER = "# Padachar backup v1"
@@ -34,6 +39,7 @@ object Backup {
         val p = app.userPreferences.profile.first()
         val days = app.stepRepository.allDays()
         val food = app.stepRepository.allFood()
+        val cycle = if (app.userPreferences.cycleInBackup.first()) app.userPreferences.cycleDays.first() else emptyList()
         // "wt" empties the file first, so an older, longer backup leaves no old lines at the end.
         // A few storage apps do not support it; plain "w" is the fallback.
         val out = runCatching { ctx.contentResolver.openOutputStream(uri, "wt") }.getOrNull()
@@ -45,8 +51,9 @@ object Backup {
             food.forEach {
                 w.write("F,${it.epochDay},${it.timeMs},${Csv.field(it.name)},${it.servings},${it.kcal},${it.proteinG},${it.carbsG},${it.fatG}\n")
             }
+            cycle.forEach { w.write("C,${it.epochDay},${it.flow.code},${Symptom.toBits(it.symptoms)}\n") }
         }
-        days.size + food.size
+        days.size + food.size + cycle.size
     }
 
     /** @return number of records added or updated. */
@@ -61,6 +68,7 @@ object Backup {
         val first = lines.firstOrNull().orEmpty().removePrefix("\uFEFF")
         require(first.startsWith("# Padachar backup") || first.startsWith("# StrideLocal backup")) { "This is not a Padachar backup file" }
         var changed = 0
+        val cycle = mutableListOf<CycleDay>()
         for (line in Csv.records(lines.drop(1))) {
             val f = Csv.split(line)
             runCatching {
@@ -89,6 +97,7 @@ object Backup {
                         }
                         if (raised) changed++
                     }
+                    "C" -> CycleLog.parseDay("${f[1]}:${f[2]}:${f[3]}")?.let { cycle += it }
                     "F" -> {
                         val e = FoodEntry(0, f[1].toLong(), f[2].toLong(), f[3], f[4].toDouble(), f[5].toDouble(), f[6].toDouble(), f[7].toDouble(), f[8].toDouble())
                         if (!repo.hasFood(e.timeMs, e.name)) {
@@ -98,6 +107,12 @@ object Backup {
                     }
                 }
             } // a damaged line is skipped instead of stopping the whole restore
+        }
+        if (cycle.isNotEmpty()) {
+            val added = app.userPreferences.addMissingCycleDays(cycle)
+            // The backup came from a phone with cycle tracking on, so show the Cycle tab again.
+            if (added > 0) app.userPreferences.setCycleEnabled(true)
+            changed += added
         }
         changed
     }
