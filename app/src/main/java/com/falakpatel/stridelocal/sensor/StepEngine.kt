@@ -59,18 +59,22 @@ object StepEngine {
      * Adds finished minutes from the step detector: each becomes a walk or run minute.
      * Run minutes also get the running stride and calorie correction.
      */
-    suspend fun addPaceMinutes(ctx: Context, minutes: List<Pair<Long, Int>>) = mutex.withLock {
+    suspend fun addPaceMinutes(ctx: Context, minutes: List<MinutePace>) = mutex.withLock {
         if (minutes.isEmpty()) return@withLock
         val app = ctx.strideApp
         val p = app.userPreferences.profile.first()
-        val rows = minutes.groupBy { DayClock.epochDay(it.first) }.map { (day, list) ->
+        val rows = minutes.groupBy { DayClock.epochDay(it.startMs) }.map { (day, list) ->
             var row = app.stepRepository.getDay(day) ?: DailySteps(day, goal = p.dailyGoal)
-            for ((_, n) in list) {
-                when (paceFor(n)) {
+            for (m in list) {
+                when (paceFor(m.steps, m.runSteps)) {
                     Pace.RUN -> {
-                        val (km, kcal) = HealthMetrics.runningExtra(n, p.strideM, p.weightKg)
+                        // A full running minute as before. For part of a minute, take the extra
+                        // distance and calories of a full one and scale it to the steps run.
+                        val n = if (m.steps >= RUN_STEPS_PER_MIN) m.steps else m.runSteps
+                        val full = max(n, RUN_STEPS_PER_MIN)
+                        val (km, kcal) = HealthMetrics.runningExtra(full, p.strideM, p.weightKg)
                         row = row.copy(runMin = row.runMin + 1, runSteps = row.runSteps + n,
-                            distanceKm = row.distanceKm + km, activeKcal = row.activeKcal + kcal)
+                            distanceKm = row.distanceKm + km * n / full, activeKcal = row.activeKcal + kcal * n / full)
                     }
                     Pace.WALK -> row = row.copy(walkMin = row.walkMin + 1)
                     Pace.IDLE -> Unit

@@ -45,8 +45,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * Activity tab: walking vs running, told apart by step speed. Every minute with
- * [RUN_STEPS_PER_MIN] or more steps is a running minute; 40 or more is a walking minute.
+ * Activity tab: walking vs running, told apart by step speed. A minute mostly stepped at a pace of
+ * [RUN_STEPS_PER_MIN] or more steps a minute is a running minute; 40 or more steps is a walking minute.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +72,7 @@ fun ActivityScreen(state: MainUiState) {
             }
             WeekSplit(state.week, walk, run)
             Text(
-                "Running = $RUN_STEPS_PER_MIN+ steps a minute. Walking = 40+.",
+                "Running = stepping at a pace of $RUN_STEPS_PER_MIN+ steps a minute. Walking = 40+ steps in a minute.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

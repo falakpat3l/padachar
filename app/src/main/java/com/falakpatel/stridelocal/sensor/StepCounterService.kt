@@ -191,7 +191,7 @@ class StepCounterService : Service(), SensorEventListener {
         val counter = pendingCounter
         val wall = pendingWallMs
         val accel = accelSteps.getAndSet(0)
-        val minutes = pace.drain(System.currentTimeMillis(), all = final)
+        val minutes = pace.drainPaced(System.currentTimeMillis(), all = final)
         val today = DayClock.today()
         val hasCounter = counter >= 0 && counter != flushedCounter
         val newDay = today != lastWidgetDay

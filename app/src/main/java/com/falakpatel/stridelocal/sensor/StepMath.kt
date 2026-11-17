@@ -101,8 +101,11 @@ fun splitAcrossMidnight(delta: Long, lastMs: Long, nowMs: Long, zone: ZoneId = Z
 
 enum class Pace { IDLE, WALK, RUN }
 
-/** Steps per minute at or above this count as running (brisk walking tops out around 130 to 140). */
+/** Stepping at this pace (steps per minute) or faster counts as running (brisk walking tops out around 130 to 140). */
 const val RUN_STEPS_PER_MIN = 145
+
+/** A minute needs this many steps at running pace (about 12 seconds of it) to be a running minute. */
+const val RUN_MIN_STEPS = 30
 
 fun paceFor(stepsInMinute: Int): Pace = when {
     stepsInMinute >= RUN_STEPS_PER_MIN -> Pace.RUN
@@ -111,23 +114,65 @@ fun paceFor(stepsInMinute: Int): Pace = when {
 }
 
 /**
- * Groups single-step timestamps (from TYPE_STEP_DETECTOR) into whole clock minutes.
+ * Walk or run for one clock minute, from how fast the steps came, not only how many there were.
+ * A run rarely fills a whole clock minute (it starts halfway through one, or stops at a crossing),
+ * so counting 145 steps inside the minute missed most real runs. [runSteps] are the steps taken
+ * at running pace: enough of them, and most of the minute's steps, make it a running minute.
+ */
+fun paceFor(stepsInMinute: Int, runSteps: Int): Pace = when {
+    runSteps >= RUN_MIN_STEPS && runSteps * 2 >= stepsInMinute -> Pace.RUN
+    stepsInMinute >= RUN_STEPS_PER_MIN -> Pace.RUN
+    stepsInMinute >= 40 -> Pace.WALK
+    else -> Pace.IDLE
+}
+
+/** One finished clock minute: when it began, its steps, and how many of them were at running pace. */
+data class MinutePace(val startMs: Long, val steps: Int, val runSteps: Int)
+
+/**
+ * Groups single-step timestamps (from TYPE_STEP_DETECTOR) into whole clock minutes, and marks
+ * each step as running pace or not from the time since the steps before it.
  * The sensor delivers steps in batches, sometimes late, so a minute is only handed out once
  * it is [slackMinutes] old. That way a batch arriving a bit late still lands in its own minute.
  */
 class PaceTracker(private val slackMinutes: Long = 2) {
     private val counts = java.util.TreeMap<Long, Int>()
+    private val runCounts = java.util.TreeMap<Long, Int>()
+    private var lastStepMs = Long.MIN_VALUE
+    private val gaps = LongArray(GAPS) // the last few times between steps, to smooth sensor jitter
+    private var gapCount = 0
 
     fun onStep(wallMs: Long) {
         val k = wallMs / 60_000
         counts[k] = (counts[k] ?: 0) + 1
+        val gap = wallMs - lastStepMs
+        if (lastStepMs == Long.MIN_VALUE || gap < 0 || gap > MAX_GAP_MS) {
+            gapCount = 0 // first step, a pause, or a clock change: start timing again
+        } else {
+            gaps[gapCount % GAPS] = gap
+            gapCount++
+            if (gapCount >= GAPS && gaps.sum() <= GAPS * 60_000L / RUN_STEPS_PER_MIN) {
+                runCounts[k] = (runCounts[k] ?: 0) + 1
+            }
+        }
+        lastStepMs = wallMs
     }
 
     /** @return finished minutes as (minute start in ms, steps in that minute). */
-    fun drain(nowMs: Long, all: Boolean = false): List<Pair<Long, Int>> {
+    fun drain(nowMs: Long, all: Boolean = false): List<Pair<Long, Int>> =
+        drainPaced(nowMs, all).map { it.startMs to it.steps }
+
+    /** @return finished minutes with their running-pace steps. */
+    fun drainPaced(nowMs: Long, all: Boolean = false): List<MinutePace> {
         val limit = nowMs / 60_000 - slackMinutes
-        val ready = counts.headMap(if (all) Long.MAX_VALUE else limit).entries.map { it.key * 60_000 to it.value }
-        ready.forEach { counts.remove(it.first / 60_000) }
+        val ready = counts.headMap(if (all) Long.MAX_VALUE else limit).entries
+            .map { MinutePace(it.key * 60_000, it.value, runCounts[it.key] ?: 0) }
+        ready.forEach { counts.remove(it.startMs / 60_000); runCounts.remove(it.startMs / 60_000) }
         return ready
+    }
+
+    private companion object {
+        const val GAPS = 4
+        const val MAX_GAP_MS = 1_500L
     }
 }
