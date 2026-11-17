@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.1-alpha
+- Running now shows on the Activity tab for short or interrupted runs. Running is told from walking by how fast the steps come (a pace of 145 steps a minute or more), not by counting 145 steps inside one clock minute, so a jog that starts halfway through a minute counts
+
 ## 0.8.0-alpha
 - New, optional cycle tracking. Switch it on in Settings, Cycle tracking, and a Cycle tab appears between Food and Settings. It is off by default, so nothing changes for anyone who does not need it
 - Log a day from the calendar: flow (spotting, light, medium or heavy) and how you feel (cramps, headache, back pain, bloating, tender breasts, acne, tired, low mood, mood swings, cravings)
