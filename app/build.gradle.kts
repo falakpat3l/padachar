@@ -2,7 +2,6 @@ import com.android.build.api.artifact.SingleArtifact
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
@@ -17,7 +16,6 @@ android {
         targetSdk = 36
         versionCode = 18
         versionName = "0.8.1-alpha"
-        resourceConfigurations += "en" // drop unused library translations (smaller APK)
     }
 
     // Fixed release key (from GitHub secrets) so updates install over the old version
@@ -41,11 +39,11 @@ android {
             signingConfig = signingConfigs.getByName(if (keystorePath != null) "release" else "debug")
         }
     }
+    androidResources { localeFilters += "en" } // drop unused library translations
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
     lint { checkReleaseBuilds = false }
     packaging {
@@ -70,9 +68,9 @@ dependencies {
 
     // Local storage only
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
 
     // Optional one-time import from Health Connect (on-device store used by Google Fit / Health)
     implementation("androidx.health.connect:connect-client:1.1.0")
